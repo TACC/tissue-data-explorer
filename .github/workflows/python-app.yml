@@ -33,25 +33,7 @@ jobs:
         pip install ruff
     - name: Lint with ruff
       uses: astral-sh/ruff-action@v2
-    - name: print contents of current directory
+    - name: run tests
       run: |
-        ls
-    - name: create docker volume
-      run: |
-        docker volume create config-data
-    - name: make temp container to copy data into docker volume
-      run : |
-        docker run -d --name temp -v config-data:/data busybox sleep infinity
-    - name: copy starter data into docker volume
-      run : |
-        docker cp ./start/. temp:/data/
-    - name: stop temp container
-      run : |
-        docker stop temp
-    - name: build and run app docker containers
-      run: |
-        docker compose -f docker-compose-dev.yaml up --detach
-    - name: run tests for display app
-      run: |
-        docker exec tissue-data-explorer-display-1 pytest
+        ./run_tests.sh
         
