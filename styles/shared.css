@@ -1,0 +1,56 @@
+body {
+    font-size: 1.25rem;
+}
+
+hr {
+    border: 1px solid #555;
+}
+
+footer {
+    margin: 3rem 1rem 0rem 1rem;
+    text-align: center;
+    font-size: .9rem;
+}
+
+section header {
+    margin-bottom: 1.6rem;
+}
+
+p {
+    margin-bottom: 0;
+    text-align : left;
+    font-family: 'Source Sans Pro';
+ }
+
+.main-div {
+    margin-top: 2rem;
+    width: 100%;
+}
+
+/* Header */
+
+.title {
+    padding: 1rem 1rem 1rem 1rem;
+    margin-right: 0px;
+}
+
+.title-group {
+    display: flex;
+    align-items: center;
+}
+
+.header-img {
+    height: 40px;
+    padding-left: 20px;
+}
+
+/* Alerts */
+
+.result-toast {
+    z-index: 1;
+    position: fixed;
+    top: 110px;
+    right: 10px; 
+    width: 350px;
+    font-size: 16px;
+  }

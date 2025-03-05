@@ -1,0 +1,29 @@
+services:
+  # nginx-proxy:
+  #   build:
+  #     context: .
+  #     dockerfile: "./nginx/Dockerfile-nginx"
+  #   ports:
+  #     - "80:80"
+  #   depends_on:
+  #     - dash-app
+    # networks:
+    #   - inside
+    #   - outside
+  dash-app:
+    build:
+      context: .
+      dockerfile: "./app/Dockerfile"
+      platforms: 
+        - "linux/amd64"
+    ports:
+      - "8050:8050"
+    stdin_open: true
+    tty: true
+    restart: on-failure:5
+#     networks:
+#       - inside
+# networks:
+#   inside:
+#     internal: true
+#   outside:

@@ -1,0 +1,100 @@
+@import "./styles/shared.css";
+
+/* Image Stack Slicer */
+
+.slicer-card {
+    margin-top: 20px;
+}
+
+.custom-slicer-div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-slicer-img {
+    padding-top: 20px;
+    width: 100%;
+}
+
+.solo-slicer-img {
+    padding: 20px;
+}
+
+.download-header {
+    margin-top: 20px;
+}
+
+.dcc-graph {
+    height: 600px;
+}
+
+/* 3D Model */
+.block-card {
+    height: 100%;
+}
+
+/* AG Grid */
+
+.ag-theme-alpine.large {
+    --ag-row-height: 120px;
+}
+
+.ag-theme-alpine.block-grid div {
+    font-size: 1rem;
+    font-family: 'Source Sans Pro'
+}
+
+.thumbnail {
+    height: 110px;
+    align-items: center;
+    justify-content: center;
+    margin: 0px;
+    padding: 5px;
+    border-radius: 10px;
+}
+
+.center-aligned-header .ag-header-cell-label {
+    justify-content: center;
+}
+
+.center-aligned-cell {
+    text-align: center;
+    justify-content: center;
+}
+
+.ag-row .ag-cell {
+    display: flex;
+    align-items: center;
+}
+
+/* Home */
+.middle-section {
+    margin-top: 2rem;
+}
+
+/* Downloads */
+
+.download-button-container {
+    padding-top: .75rem;
+}
+
+/* Misc */
+
+.loader-wrapper > div {
+    visibility: visible !important;
+}
+
+/* Volumetrics */
+
+.proteomics-filter {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+#download-dataset {
+    margin-top: 40px;
+    margin-bottom: 20px;
+    padding-left: 17px;
+    padding-right: 17px;
+}

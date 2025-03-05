@@ -1,0 +1,19 @@
+FROM python:3.13-bookworm AS poetry
+RUN pip install "poetry==1.8.4"
+WORKDIR /app
+COPY ./pyproject.toml ./poetry.lock ./
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --with=dev,config
+
+FROM python:3.13-bookworm
+RUN apt-get update && apt-get upgrade -y && apt-get install -y python3
+WORKDIR /app
+COPY --from=poetry /app/requirements.txt .
+RUN pip install -r ./requirements.txt
+RUN pip install pytest pytest-cov
+
+ENV PATH="/app:$PATH"
+# ENV PYTHONPATH "${PYTHONPATH}:/app"
+# ENV PORT=8050
+# EXPOSE 8050
+ENTRYPOINT [ "python", "app.py" ]
+# ENTRYPOINT ["gunicorn", "app:server", "-b", "0.0.0.0:8050", "--log-level", "info", "--workers=2"]

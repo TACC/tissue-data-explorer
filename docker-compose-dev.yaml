@@ -1,0 +1,44 @@
+services:
+  config-app:
+    build:
+      context: .
+      dockerfile: "./config_portal/Dockerfile-dev-config"
+    ports:
+      - "8040:8040"
+    expose:
+      - "8040"
+    volumes:
+      - type: bind
+        source: ./config_portal
+        target: /app
+      - type: bind
+        source: ./components
+        target: /app/components
+      - type: bind
+        source: ./styles
+        target: /app/assets/styles
+      - config-data:/config
+  display-app:
+    build: 
+      context: .
+      dockerfile: "./app/Dockerfile-dev-dash"
+    ports:
+      - "8050:8050"
+    expose:
+      - "8050"
+    stdin_open: true
+    tty: true
+    volumes:
+      - type: bind
+        source: ./app
+        target: /app
+      - type: bind
+        source: ./components
+        target: /app/components
+      - type: bind
+        source: ./styles
+        target: /app/assets/styles
+      - config-data:/app/assets/config
+volumes:
+  config-data:
+    external: true

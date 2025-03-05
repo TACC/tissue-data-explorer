@@ -1,0 +1,68 @@
+@import "./styles/shared.css";
+
+.drop-zone {
+    width: 100%;
+    height: 60px;
+    line-height: 60px;
+    border-width: 1px;
+    border-style: dashed;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.upload-card-title {
+    padding-top: 5px;
+}
+
+.upload-row {
+    margin-top: 30px; 
+    margin-bottom: 15px;
+}
+
+.auth-nav {
+    margin-left: auto;
+}
+
+.auth-nav__icon {
+    align-self: center;
+    font-size: 20px;
+    margin-right: .5em;
+    margin-left: 5px;
+}
+
+#auth-link :hover {
+    text-decoration: none;
+}
+
+.link--warning {
+    color: white;
+}
+
+.auth-form__field {
+    padding: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.button-div {
+    height: 70px;
+    display: flex;
+    align-items: center;
+}
+
+.accordion-button {
+    font-weight: bold;
+}
+
+.accordion-button, .accordion-body {
+    background-color: #f6f6f6;
+}
+
+.inner-alert {
+    margin-top: 20px;
+}
+
+.form-card {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
