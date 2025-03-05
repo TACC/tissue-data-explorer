@@ -67,6 +67,7 @@ VALID_MIMES = {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/octet-stream",
         "text/xml",
+        "text/plain",
     ],
     "3d": [
         "application/vnd.ms-excel",
@@ -146,8 +147,6 @@ app_logger.setLevel(gunicorn_logger.level)
 
 def check_file_type(file, valid_type, filename=None):
     ftype = filetype.guess(file)
-    print(ftype.extension, ftype.mime, file=sys.stdout, flush=True)
-    # png image/png
     if ftype is None:
         if valid_type == "image" or valid_type == "excel/vol" or valid_type == "3d":
             ftype = magic.from_buffer(file)
@@ -172,15 +171,13 @@ def check_file_type(file, valid_type, filename=None):
                 else:
                     return False, f"Invalid file type {ext}"
         else:
-            return False, f"Invalid file type {ftype}"
+            return False, f"Invalid file type {ftype.extension}"
     elif (ftype.extension in VALID_EXTS[valid_type]) and (
         ftype.mime in VALID_MIMES[valid_type]
     ):
         return True, ""
     else:
-        print("valid type:", valid_type, file=sys.stdout, flush=True)
-        print("not found", file=sys.stdout, flush=True)
-        return False, f"Invalid file type {ftype}"
+        return False, f"Invalid file type {ftype.extension}"
 
 
 def check_html_helper(some_text):
@@ -272,10 +269,7 @@ def process_si_block_file(file: bytes, which_headers: str) -> tuple[bool, str]:
                     # calculate link values for main page links
                     update_links(col, header_check[2][key])
             header_check[2][key].to_csv(FD[which_headers][key]["depot"], index=False)
-        return (
-            True,
-            "",
-        )
+        return (True, "")
     else:
         return (header_check[0], header_check[1])
 
@@ -422,6 +416,9 @@ def update_title(value: str) -> tuple[str, str, str]:
                 clean_title = check_html_helper(value)
                 d = {"title": [clean_title]}
                 df = pd.DataFrame(data=d)
+                dest = Path(FD["title"]["depot"])
+                if not Path.exists(dest.parent):
+                    Path.mkdir(dest.parent, parents=True)
                 df.to_csv(f"{FD["title"]["depot"]}", index=False)
                 p = Path(FD["title"]["depot"])
                 t = Path(FD["title"]["publish"])
