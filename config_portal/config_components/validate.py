@@ -195,7 +195,7 @@ def update_links(column, df):
             links = {
                 "Images": f"/scientific-images-list/{df["Tissue Block"].at[i]}",
                 "Reports": "/reports",
-                "Volumetric Map": f"volumetric-map/{df["Tissue Block"].at[i]}",
+                "Volumetric Map": f"/volumetric-map/{df["Tissue Block"].at[i]}",
             }
             if not (df[column].at[i] == " "):
                 df[column].at[i] = links[column]

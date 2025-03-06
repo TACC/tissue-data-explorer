@@ -11,7 +11,6 @@ def make_upload_content(filepath):
 
     # get the mime type
     mime = magic.from_buffer(b64bytes, mime=True)
-    print(mime)
     content_type = "".join(["data:", mime, ";base64"])
 
     # join the type and content strings

@@ -1,6 +1,9 @@
 import os
 import sys
 import pandas as pd
+from pathlib import Path
+import plotly
+import json
 
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
@@ -80,16 +83,47 @@ def test_update_links():
     assert df.loc[1, "Reports"] == " "
 
     validate.update_links("Volumetric Map", df)
-    assert df.loc[0, "Volumetric Map"] == "volumetric-map/S1-1"
+    assert df.loc[0, "Volumetric Map"] == "/volumetric-map/S1-1"
     assert df.loc[1, "Volumetric Map"] == " "
 
 
 def test_publish_si_block():
-    pass
+    # test that depot folder has si files
+    assert Path(FD["si-block"]["block-data"]["depot"]).exists() is True
+    assert Path(FD["si-block"]["si-files"]["depot"]).exists() is True
+
+    validate.publish_si_block()
+
+    # test that depot folder is empty
+    assert Path(FD["si-block"]["block-data"]["depot"]).exists() is False
+    assert Path(FD["si-block"]["si-files"]["depot"]).exists() is False
+
+    # test that publish folder has si files
+    assert Path(FD["si-block"]["block-data"]["publish"]).exists() is True
+    assert Path(FD["si-block"]["si-files"]["publish"]).exists() is True
 
 
 def test_update_si_block_output():
-    pass
+    str1 = make_upload_content("/app/examples/images-example.xlsx")
+    str2 = make_upload_content("/app/examples/downloads.xlsx")
+
+    # expect success
+    result1 = json.loads(
+        json.dumps(
+            home.update_si_block_output(str1, "images-example.xlsx"),
+            cls=plotly.utils.PlotlyJSONEncoder,
+        )
+    )
+    assert result1[0]["props"]["header_class_name"] == "text-success"
+
+    # expect failure
+    result2 = json.loads(
+        json.dumps(
+            home.update_si_block_output(str2, "downloads.xlsx"),
+            cls=plotly.utils.PlotlyJSONEncoder,
+        )
+    )
+    assert result2[0]["props"]["header_class_name"] == "text-danger"
 
 
 def test_process_content():
