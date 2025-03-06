@@ -361,10 +361,10 @@ def check_png_name_ending(filename: str) -> tuple[bool, str]:
     nr = re.compile(numreg)
     m = nr.fullmatch(nameparts[-1])
     if m:
-        return m, ""
+        return True, ""
     else:
         return (
-            m,
+            False,
             f"Filename {filename} must contain exactly five consecutive number characters between the _C sequence and the file extension",
         )
 
@@ -376,8 +376,6 @@ def process_sci_image(file: bytes, filename: str) -> tuple[bool, str, str]:
 
     Returns (check results, error message)
     """
-
-    # should validation function clear depot before adding new stuff?
     df = pd.read_csv(FD["si-block"]["si-files"]["publish"])
     if df.empty:
         return False, "You must upload image metadata before uploading images"
@@ -688,6 +686,7 @@ def process_content(
     Returns (success, error message)"""
     if content == "":
         return False, "One or more files were too large."
+
     content_type, content_string = content.split(",")
     decoded = base64.b64decode(content_string)
     is_valid_type = check_file_type(decoded, filetype, filename)
