@@ -703,32 +703,24 @@ def process_content(
 def is_valid_filename(*args, fn="") -> bool:
     """Returns a boolean: True if the name conforms to rules, False if it is over the max
     length or contains forbidden characters."""
-    # TODO: fix this so it actually finds the forbidden characters
     if len(fn) > MAX_FILENAME_LENGTH:
         return False, f"{fn} exceeds {MAX_FILENAME_LENGTH} characters in length"
 
-    # p = re.compile(r"[^\w\s_()-]")
-    # fname = Path(fn)
-    matches = re.findall(r"[^\w\s_()-.]", fn)
-    # matches = p.search(fname.stem)
-    # matches = p.findall(fname.stem)
-    # print("regex matches", matches, file=sys.stdout, flush=True)
+    matches = re.findall(r"[^\w\s_()\-.]", fn)
+
     if len(matches) == 0:
         return True, ""
     else:
-        # match_list = p.findall(fname.stem)
-
         return (
             False,
             f"{fn} contains the following forbidden character sequence(s): {", ".join(matches)}",
-            # f"{fn} contains the following forbidden character sequence(s): {", ".join(match_list)}",
         )
 
 
 def validate_filename_col(col):
     for i in range(col.shape[0]):
-        is_valid = is_valid_filename(col.loc[i])
-        if not is_valid[0]:
+        is_valid = is_valid_filename(fn=col.loc[i])
+        if is_valid[0] is False:
             return False, is_valid[1]
     return True, ""
 
@@ -782,6 +774,7 @@ def update_df_entries(
             ol.loc[existing_rows + i] = new_entries.iloc[i]
     # drop rows that were duplicated by entries in new upload
     ol.drop(to_drop, inplace=True)
+    ol.index = range(len(ol))
     return ol
 
 
