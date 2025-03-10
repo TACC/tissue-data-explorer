@@ -728,18 +728,14 @@ def validate_filename_col(col):
 def write_excel(dfs: dict, filename: str, loc: str) -> tuple[bool, str]:
     # check that loc exists
     p = Path(loc)
-    if not Path.exists(p):
+    f = Path(f"{loc}/{filename}")
+    if Path.exists(f):
+        # delete the file as it will be replaced
+        Path.unlink(f)
+    elif not Path.exists(p):
         Path.mkdir(p, parents=True)
-    with pd.ExcelWriter(f"{loc}/{filename}", mode="w") as writer:
-        df = pd.DataFrame(data={})
-        df.to_excel(writer)
-    # save into Excel workbook
     try:
-        with pd.ExcelWriter(
-            f"{loc}/{filename}",
-            mode="a",
-            engine="openpyxl",
-        ) as writer:
+        with pd.ExcelWriter(f"{loc}/{filename}", mode="w") as writer:
             for key in dfs.keys():
                 df = sanitize_df(dfs[key])
                 df.to_excel(writer, sheet_name=key, index=False)
@@ -883,8 +879,8 @@ def make_cubes_df(
             z_transform - 0.001,
         ],
     }
-
     cubes_df = pd.DataFrame().reindex(columns=points_df.columns)
+
     # for each row in the source df, make 8 rows in the new df. Each row represents a vertex of a rectangular
     # prism around the provided point
     for i in points_df.index:

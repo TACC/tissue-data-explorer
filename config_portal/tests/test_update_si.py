@@ -62,7 +62,6 @@ def test_upload_sci_images():
             cls=plotly.utils.PlotlyJSONEncoder,
         )
     )
-    print(result1[0]["props"])
     assert result1[0]["props"]["header_class_name"] == "text-success"
 
     # expect failure

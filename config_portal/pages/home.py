@@ -375,12 +375,11 @@ def upload_volumetric_map(list_of_contents, filenames):
                         upload_succeeded[1],
                         "failure",
                     )
-                else:
-                    return alerts.send_toast(
-                        "Volumetric map data uploaded",
-                        "The files were uploaded successfully.",
-                        "success",
-                    )
+            return alerts.send_toast(
+                "Volumetric map data uploaded",
+                "The files were uploaded successfully.",
+                "success",
+            )
 
 
 @callback(

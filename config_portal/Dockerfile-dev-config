@@ -15,4 +15,3 @@ ENV PATH="/app:$PATH"
 ENV PORT=8040
 EXPOSE 8040
 ENTRYPOINT [ "python", "app.py" ]
-# ENTRYPOINT ["gunicorn", "app:server", "-b", "0.0.0.0:8040", "--log-level", "info", "--workers=2"]

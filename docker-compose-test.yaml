@@ -5,12 +5,12 @@ services:
       service: display-app
     volumes:
     - config-data-test:/app/assets/config
-  # config:
-  #   extends:
-  #     file: docker-compose-dev.yaml
-  #     service: config-app
-  #   volumes:
-  #   - config-data-test:/config
+  config:
+    extends:
+      file: docker-compose-dev.yaml
+      service: config-app
+    volumes:
+    - config-data-test:/config
 volumes:
   config-data-test:
     external: true

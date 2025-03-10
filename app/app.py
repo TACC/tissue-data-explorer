@@ -15,10 +15,6 @@ from dash import (
 )
 from flask import Flask
 
-# os.chdir("..")
-# if os.getcwd() not in sys.path:
-#     sys.path.append(os.getcwd())
-# os.chdir("./app")
 from components import header
 
 
@@ -107,7 +103,6 @@ if __name__ == "__main__":
         title=header.get_title(),
         suppress_callback_exceptions=True,
     )
-    # server = app.server
     app.layout = serve_layout
     app.run_server(
         host="0.0.0.0",
@@ -127,5 +122,4 @@ else:
     gunicorn_logger = logging.getLogger("gunicorn.error")
     app.logger.handlers = gunicorn_logger.handlers
     app.logger.setLevel(gunicorn_logger.level)
-    # server = app.server
     app.layout = serve_layout

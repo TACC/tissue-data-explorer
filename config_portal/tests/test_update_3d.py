@@ -100,7 +100,7 @@ def test_update_entries():
         Path.mkdir(full_loc.parent, parents=True)
 
     # copy a test file into full loc
-    src = Path("/app/tests/test-files/obj-files.csv")
+    src = Path("/app/tests/test-files/obj/obj-files.csv")
     shutil.copyfile(src, full_loc)
 
     new_df = pd.DataFrame(
@@ -128,10 +128,12 @@ def test_update_entries():
 
 
 def test_process_obj_files():
-    str1 = make_upload_content("/app/tests/test-files/obj-files-bad-fn/obj-files.xlsx")
+    str1 = make_upload_content(
+        "/app/tests/test-files/obj/obj-files-bad-fn/obj-files.xlsx"
+    )
     b1 = decode_str(str1)
     str2 = make_upload_content(
-        "/app/tests/test-files/obj-files-bad-headers/obj-files.xlsx"
+        "/app/tests/test-files/obj/obj-files-bad-headers/obj-files.xlsx"
     )
     b2 = decode_str(str2)
     str3 = make_upload_content("/app/examples/obj-files.xlsx")
@@ -150,7 +152,7 @@ def test_process_obj_files():
 def test_update_obj_files_output():
     # will cause failure
     str1 = make_upload_content(
-        "/app/tests/test-files/obj-files-bad-headers/obj-files.xlsx"
+        "/app/tests/test-files/obj/obj-files-bad-headers/obj-files.xlsx"
     )
     # should succeed
     str2 = make_upload_content("/app/examples/obj-files.xlsx")
@@ -166,7 +168,6 @@ def test_update_obj_files_output():
             cls=plotly.utils.PlotlyJSONEncoder,
         )
     )
-    print(result1[0]["props"])
     assert result1[0]["props"]["header_class_name"] == "text-success"
 
     result2 = json.loads(
@@ -177,7 +178,6 @@ def test_update_obj_files_output():
             cls=plotly.utils.PlotlyJSONEncoder,
         )
     )
-    print(result2[0]["props"])
     assert result2[0]["props"]["header_class_name"] == "text-danger"
 
 
