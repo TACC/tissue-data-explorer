@@ -13,7 +13,6 @@ import dash_bootstrap_components as dbc
 from config_components import ui, validate
 from components import alerts
 from flask_login import current_user
-import sys
 
 title = "Update Configuration"
 MAX_FILE_SIZE = 150000000

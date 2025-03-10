@@ -13,7 +13,6 @@ import logging
 import base64
 from collections.abc import Callable
 import numpy as np
-import sys
 
 from pages import constants
 
