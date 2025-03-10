@@ -277,6 +277,18 @@ def layout(**kwargs):
                     ],
                     id="obj-files",
                 ),
+                html.Section(
+                    [
+                        ui.make_upload_card(
+                            "Update report links",
+                            ["For reports file format, see example file:"],
+                            "reports",
+                            MAX_FILE_SIZE,
+                        ),
+                        html.Div(id="output-reports-upload"),
+                    ],
+                    id="reports",
+                ),
             ]
         )
 
@@ -457,6 +469,38 @@ def update_obj_files_output(list_of_contents, filenames):
         )
 
 
+@callback(
+    Output("reports-0-example-dl", "data"),
+    Input("reports-0-example", "n_clicks"),
+    prevent_initial_call=True,
+)
+def send_reports_example(n_clicks):
+    return dcc.send_file("examples/reports.xlsx")
+
+
+@callback(
+    Output("output-reports-upload", "children"),
+    Input("reports-upload", "contents"),
+    Input("reports-upload", "filename"),
+)
+def update_reports_output(list_of_contents, filename):
+    if list_of_contents is not None:
+        upload_succeeded = validate.process_content(
+            list_of_contents,
+            filename,
+            "excel",
+            validate.process_reports_file,
+        )
+        if not upload_succeeded[0]:
+            return alerts.send_toast(
+                "Metadata not updated", upload_succeeded[1], "failure"
+            )
+        else:
+            return alerts.send_toast(
+                "Metadata updated", "The file was uploaded successfully.", "success"
+            )
+
+
 # Confirmation Modal
 @callback(
     Output("update-modal-div", "children"),
@@ -465,9 +509,10 @@ def update_obj_files_output(list_of_contents, filenames):
     Input("sci-images-publish", "n_clicks"),
     Input("volumetric-map-publish", "n_clicks"),
     Input("obj-files-publish", "n_clicks"),
+    Input("reports-publish", "n_clicks"),
     prevent_initial_call=True,
 )
-def add_modal(title, si_block, sci_images, volumetric_map, obj_files):
+def add_modal(title, si_block, sci_images, volumetric_map, obj_files, reports):
     button_clicked = ctx.triggered_id
     publish_buttons = {
         "title-publish": [
@@ -490,6 +535,10 @@ def add_modal(title, si_block, sci_images, volumetric_map, obj_files):
             "obj-files",
             "Are you sure you want to update the 3D model files? This change will be immediately visible to the public.",
         ],
+        "reports-publish": [
+            "reports",
+            "Are you sure you want to update the report links? You will need to restart the display app to see the changes.",
+        ],
     }
 
     if button_clicked in publish_buttons:
@@ -509,6 +558,7 @@ def add_modal(title, si_block, sci_images, volumetric_map, obj_files):
         Input("confirm-update-sci-images", "n_clicks"),
         Input("confirm-update-volumetric-map", "n_clicks"),
         Input("confirm-update-obj-files", "n_clicks"),
+        Input("confirm-update-reports", "n_clicks"),
         Input("cancel-update", "n_clicks"),
     ],
     [State("confirm-update-modal", "is_open"), State("title-input", "value")],
@@ -519,6 +569,7 @@ def toggle_modal(
     confirm_sci_images,
     confirm_volumetric_map,
     confirm_obj_files,
+    confirm_reports,
     cancel_update,
     is_open,
     value,
@@ -537,6 +588,9 @@ def toggle_modal(
         return not is_open, alerts.send_toast(results[0], results[1], results[2])
     elif confirm_obj_files:
         results = validate.publish_obj_files()
+        return not is_open, alerts.send_toast(results[0], results[1], results[2])
+    elif confirm_reports:
+        results = validate.publish_reports_file()
         return not is_open, alerts.send_toast(results[0], results[1], results[2])
     elif cancel_update:
         return not is_open, no_update

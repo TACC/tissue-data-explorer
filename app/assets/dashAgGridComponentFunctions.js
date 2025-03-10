@@ -10,6 +10,15 @@ dagcomponentfuncs.dsLink = function (props) {
     });
 }
 
+dagcomponentfuncs.dsExternalLink = function (props) {
+    if (props.value === " ") {
+        return " "
+    } else return React.createElement(window.dash_html_components.A, {
+        children: "View",
+        href: props.value,
+    });
+}
+
 dagcomponentfuncs.previewImg = function (props) {
     if (props.value === " ") {
         return " "

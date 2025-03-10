@@ -134,6 +134,7 @@ REQUIRED_HEADERS = {
     },
     "downloads": {"downloads": ["Name", "Label", "Desc", "Block"]},
     "obj-files": {"files": ["Organ", "Name", "File", "Color", "Opacity"]},
+    "reports": {"reports": ["Name", "Link"]},
 }
 
 FD = constants.FILE_DESTINATION
@@ -1080,3 +1081,28 @@ def publish_obj_files():
     except Exception as err:
         app_logger.debug(traceback.print_exc())
         return ("Model files not updated", f"{err}", "failure")
+
+
+def process_reports_file(file: bytes, *args) -> tuple[bool, str]:
+    header_check = check_excel_headers(file, "reports")
+    if header_check[0]:
+        header_check[2]["reports"].to_csv(FD["reports"]["depot"], index=False)
+        return (True, "")
+    else:
+        return (header_check[0], header_check[1])
+
+
+def publish_reports_file() -> tuple[str, str, str]:
+    """Publish scientific images metadata.
+    Returns (title of update toast, description of update, success status)"""
+    try:
+        p = Path(FD["reports"]["depot"])
+        t = Path(FD["reports"]["publish"])
+        shutil.move(p, t)
+    except FileNotFoundError as err:
+        return ("Metadata not updated", f"{err}", "failure")
+    return (
+        "Metadata updated",
+        "The configuration has been updated. Refresh the public-facing app to see the changes.",
+        "success",
+    )

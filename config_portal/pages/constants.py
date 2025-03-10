@@ -33,4 +33,5 @@ FILE_DESTINATION = {
         "catalog": "/config/scientific-images/thumbnails/thumbnails.csv",
     },
     "title": {"depot": "./config/labels.csv", "publish": "/config/labels.csv"},
+    "reports": {"depot": "./depot/reports.csv", "publish": "/config/reports.csv"},
 }
