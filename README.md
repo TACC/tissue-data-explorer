@@ -1,48 +1,43 @@
-# HuBMAP Pancreas Data Explorer
+# Tissue Data Explorer
 
-This site visualizes pancreas data collected as part of the HuBMAP project, which aims to collect cell-level data for every organ in the human body.
+This project contains the code necessary to create a website that showcases scientific data collected on a tissue sample. Types of data handled by this example include multi-channel image stacks, volumetric map data, and 3D models. This repository includes synthetic data that can be used to stand up a demo website, as well as a configuration portal that can be used to upload actual project data to the site.
 
 ## Prerequisites
 Docker/ Docker Compose
 
-## Getting Started with development
+## Getting Started with Development
 1. Clone this repo
 
    ```
-   git clone https://github.com/james-labyer/HuBMAP-pancreas-data-explorer.git
+   git clone https://github.com/TACC/tissue-data-explorer.git
    ```
 
-2. Some of the files in this project are too large to check into GitHub. The GitHub repo includes representative examples that use smaller files. If you want to view the larger files, download them and move them into the appropriate subfolders in:
-
-   ```
-   app/assets/optical-clearing-czi
-   ```
-
-3. Build the image
+2. Build the image
 
    ```
    cd app
    docker compose -f docker-compose-dev.yaml build
    ```
 
-4. Run the image
+3. Run the image
 
    ```
    docker compose -f docker-compose-dev.yaml up
    ```
 
-   Running the image starts the app at localhost:8050. Hot reloading within the Docker container does not work currently, but since the dev image uses a mount, you can see the changes by starting and stopping the container without rebuilding it.
+   Running the image starts the display app at `localhost:8050` and the config app at `localhost:8040`.
 
 
 ## Running tests locally
-Run pytest within a development container:
+The script `run_tests.sh` in the root project folder creates docker containers for the display and configuration apps, fills them with test data, runs the tests, and then deletes the test containers and test volume.
+
 ```
-docker exec {container_name} pytest --cov-report term-missing --cov
+./run_tests.sh
 ```
 
 ## Preparing the production image
 
-1. On your machine, build the image
+1. On your machine, build the image, the password .env for config will not be included
 
    ```
    docker compose -f docker-compose.yaml build
@@ -61,17 +56,27 @@ docker exec {container_name} pytest --cov-report term-missing --cov
    docker pull jlabyer/hubmap-pancreas-data-explorer:{tag}
    ```
 
-4. Run the image and test it
+4. Set up the blank shared volume 
+
+5. Run the image and put in the .env
 
    ```
    docker run -p 127.0.0.1:8050:8050 jlabyer/hubmap-pancreas-data-explorer:{tag}
    ```
+docker cp ./config_portal/.env tissue-data-explorer-config-1:app
 
-5. Clean up old images
+
+6. Clean up old images
 
    ```
    docker system prune -a --volumes
    ```
 
+7. You can back up a copy of the shared volume and put it on Docker Hub
+
 ## Preparing assets for display on the website
 See the `documentation` folder for more information about how to prepare optical clearing files and 3d model files for display on the website. 
+
+## Log in credentials for configuration site
+The configuration app requires a file named `.env` in the root config app folder that contains the app secret and the credentials of authorized configuration portal users. See the file `.env.example` for file syntax and location.
+

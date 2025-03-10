@@ -1,16 +1,6 @@
 services:
-  # nginx-proxy:
-  #   build:
-  #     context: .
-  #     dockerfile: "./nginx/Dockerfile-nginx"
-  #   ports:
-  #     - "80:80"
-  #   depends_on:
-  #     - dash-app
-    # networks:
-    #   - inside
-    #   - outside
-  dash-app:
+
+  display:
     build:
       context: .
       dockerfile: "./app/Dockerfile"
@@ -21,6 +11,24 @@ services:
     stdin_open: true
     tty: true
     restart: on-failure:5
+    volumes:
+      - config-data:/app/assets/config
+  config:
+    build:
+      context: .
+      dockerfile: "./config_portal/Dockerfile-config"
+      platforms: 
+        - "linux/amd64"
+    ports:
+      - "8040:8040"
+    stdin_open: true
+    tty: true
+    restart: on-failure:5
+    volumes:
+      - config-data:/config
+volumes:
+  config-data:
+    external: true
 #     networks:
 #       - inside
 # networks:
