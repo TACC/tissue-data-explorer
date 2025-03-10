@@ -67,6 +67,7 @@ VALID_MIMES = {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/octet-stream",
         "text/xml",
+        "text/plain",
     ],
     "3d": [
         "application/vnd.ms-excel",
@@ -146,8 +147,6 @@ app_logger.setLevel(gunicorn_logger.level)
 
 def check_file_type(file, valid_type, filename=None):
     ftype = filetype.guess(file)
-    print(ftype.extension, ftype.mime, file=sys.stdout, flush=True)
-    # png image/png
     if ftype is None:
         if valid_type == "image" or valid_type == "excel/vol" or valid_type == "3d":
             ftype = magic.from_buffer(file)
@@ -172,15 +171,13 @@ def check_file_type(file, valid_type, filename=None):
                 else:
                     return False, f"Invalid file type {ext}"
         else:
-            return False, f"Invalid file type {ftype}"
+            return False, f"Invalid file type {ftype.extension}"
     elif (ftype.extension in VALID_EXTS[valid_type]) and (
         ftype.mime in VALID_MIMES[valid_type]
     ):
         return True, ""
     else:
-        print("valid type:", valid_type, file=sys.stdout, flush=True)
-        print("not found", file=sys.stdout, flush=True)
-        return False, f"Invalid file type {ftype}"
+        return False, f"Invalid file type {ftype.extension}"
 
 
 def check_html_helper(some_text):
@@ -198,7 +195,7 @@ def update_links(column, df):
             links = {
                 "Images": f"/scientific-images-list/{df["Tissue Block"].at[i]}",
                 "Reports": "/reports",
-                "Volumetric Map": f"volumetric-map/{df["Tissue Block"].at[i]}",
+                "Volumetric Map": f"/volumetric-map/{df["Tissue Block"].at[i]}",
             }
             if not (df[column].at[i] == " "):
                 df[column].at[i] = links[column]
@@ -272,10 +269,7 @@ def process_si_block_file(file: bytes, which_headers: str) -> tuple[bool, str]:
                     # calculate link values for main page links
                     update_links(col, header_check[2][key])
             header_check[2][key].to_csv(FD[which_headers][key]["depot"], index=False)
-        return (
-            True,
-            "",
-        )
+        return (True, "")
     else:
         return (header_check[0], header_check[1])
 
@@ -367,10 +361,10 @@ def check_png_name_ending(filename: str) -> tuple[bool, str]:
     nr = re.compile(numreg)
     m = nr.fullmatch(nameparts[-1])
     if m:
-        return m, ""
+        return True, ""
     else:
         return (
-            m,
+            False,
             f"Filename {filename} must contain exactly five consecutive number characters between the _C sequence and the file extension",
         )
 
@@ -382,8 +376,6 @@ def process_sci_image(file: bytes, filename: str) -> tuple[bool, str, str]:
 
     Returns (check results, error message)
     """
-
-    # should validation function clear depot before adding new stuff?
     df = pd.read_csv(FD["si-block"]["si-files"]["publish"])
     if df.empty:
         return False, "You must upload image metadata before uploading images"
@@ -422,6 +414,9 @@ def update_title(value: str) -> tuple[str, str, str]:
                 clean_title = check_html_helper(value)
                 d = {"title": [clean_title]}
                 df = pd.DataFrame(data=d)
+                dest = Path(FD["title"]["depot"])
+                if not Path.exists(dest.parent):
+                    Path.mkdir(dest.parent, parents=True)
                 df.to_csv(f"{FD["title"]["depot"]}", index=False)
                 p = Path(FD["title"]["depot"])
                 t = Path(FD["title"]["publish"])
@@ -691,6 +686,7 @@ def process_content(
     Returns (success, error message)"""
     if content == "":
         return False, "One or more files were too large."
+
     content_type, content_string = content.split(",")
     decoded = base64.b64decode(content_string)
     is_valid_type = check_file_type(decoded, filetype, filename)
@@ -707,32 +703,24 @@ def process_content(
 def is_valid_filename(*args, fn="") -> bool:
     """Returns a boolean: True if the name conforms to rules, False if it is over the max
     length or contains forbidden characters."""
-    # TODO: fix this so it actually finds the forbidden characters
     if len(fn) > MAX_FILENAME_LENGTH:
         return False, f"{fn} exceeds {MAX_FILENAME_LENGTH} characters in length"
 
-    # p = re.compile(r"[^\w\s_()-]")
-    # fname = Path(fn)
-    matches = re.findall(r"[^\w\s_()-.]", fn)
-    # matches = p.search(fname.stem)
-    # matches = p.findall(fname.stem)
-    # print("regex matches", matches, file=sys.stdout, flush=True)
+    matches = re.findall(r"[^\w\s_()\-.]", fn)
+
     if len(matches) == 0:
         return True, ""
     else:
-        # match_list = p.findall(fname.stem)
-
         return (
             False,
             f"{fn} contains the following forbidden character sequence(s): {", ".join(matches)}",
-            # f"{fn} contains the following forbidden character sequence(s): {", ".join(match_list)}",
         )
 
 
 def validate_filename_col(col):
     for i in range(col.shape[0]):
-        is_valid = is_valid_filename(col.loc[i])
-        if not is_valid[0]:
+        is_valid = is_valid_filename(fn=col.loc[i])
+        if is_valid[0] is False:
             return False, is_valid[1]
     return True, ""
 
@@ -740,18 +728,14 @@ def validate_filename_col(col):
 def write_excel(dfs: dict, filename: str, loc: str) -> tuple[bool, str]:
     # check that loc exists
     p = Path(loc)
-    if not Path.exists(p):
+    f = Path(f"{loc}/{filename}")
+    if Path.exists(f):
+        # delete the file as it will be replaced
+        Path.unlink(f)
+    elif not Path.exists(p):
         Path.mkdir(p, parents=True)
-    with pd.ExcelWriter(f"{loc}/{filename}", mode="w") as writer:
-        df = pd.DataFrame(data={})
-        df.to_excel(writer)
-    # save into Excel workbook
     try:
-        with pd.ExcelWriter(
-            f"{loc}/{filename}",
-            mode="a",
-            engine="openpyxl",
-        ) as writer:
+        with pd.ExcelWriter(f"{loc}/{filename}", mode="w") as writer:
             for key in dfs.keys():
                 df = sanitize_df(dfs[key])
                 df.to_excel(writer, sheet_name=key, index=False)
@@ -786,6 +770,7 @@ def update_df_entries(
             ol.loc[existing_rows + i] = new_entries.iloc[i]
     # drop rows that were duplicated by entries in new upload
     ol.drop(to_drop, inplace=True)
+    ol.index = range(len(ol))
     return ol
 
 
@@ -894,8 +879,8 @@ def make_cubes_df(
             z_transform - 0.001,
         ],
     }
-
     cubes_df = pd.DataFrame().reindex(columns=points_df.columns)
+
     # for each row in the source df, make 8 rows in the new df. Each row represents a vertex of a rectangular
     # prism around the provided point
     for i in points_df.index:

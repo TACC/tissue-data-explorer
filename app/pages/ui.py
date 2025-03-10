@@ -74,9 +74,12 @@ def make_downloads_ui_elements(downloads: pd.DataFrame) -> list:
     for i in downloads.index:
         download_items.append(html.P(downloads.loc[i, "Desc"]))
         download_items.append(
-            dbc.Button(
-                downloads.loc[i, "Label"], id={"type": "btn-download", "index": i}
-            )
+            html.Div(
+                dbc.Button(
+                    downloads.loc[i, "Label"], id={"type": "btn-download", "index": i}
+                ),
+                className="download-button-container",
+            ),
         )
         download_items.append(dcc.Download(id={"type": "dcc-download", "index": i}))
         download_items.append(html.Hr())

@@ -41,9 +41,6 @@ def make_mesh_settings(
 
     mesh = {
         "type": "mesh3d",
-        # "x": y,
-        # "y": z,
-        # "z": x,
         "x": x,
         "y": y,
         "z": z,

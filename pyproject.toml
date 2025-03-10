@@ -55,6 +55,11 @@ build-backend = "poetry.core.masonry.api"
 "app/tests/test_home.py" = ["F401"]
 "app/tests/test_3d.py" = ["F401"]
 "app/tests/test_spatialmap.py" = ["F401"]
+"config_portal/tests/test_update_3d.py" = ["F401"]
+"config_portal/tests/test_update_si_block.py" = ["F401"]
+"config_portal/tests/test_update_si.py" = ["F401"]
+"config_portal/tests/test_update_spatialmap.py" = ["F401"]
+"config_portal/tests/test_update_title.py" = ["F401"]
 
 # Ignore out of order imports when sys.path must be updated to perform the import
 "app/app.py" = ["E402"]
