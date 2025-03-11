@@ -1,3 +1,6 @@
+# This compose file is intended for use in a development environment.
+# It includes test suites and bind mounts so containers will use latest code updates.
+
 services:
   config-app:
     build:

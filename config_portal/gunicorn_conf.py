@@ -6,3 +6,4 @@ log_file = "gunicorn_logs"
 host = "0.0.0.0"
 port = "8040"
 loglevel = "info"
+timeout = 90

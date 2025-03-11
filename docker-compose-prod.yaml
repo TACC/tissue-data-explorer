@@ -1,0 +1,27 @@
+# This compose file is intended for use on the production server.
+# You must build the image using docker-compose.yaml, push it to Docker Hub, 
+# and then update the image information in this file before running the image.
+
+services:
+  display:
+    image: "jlabyer/tissue-data-explorer-display:1.1"
+    ports:
+      - "8050:8050"
+    stdin_open: true
+    tty: true
+    restart: on-failure:5
+    volumes:
+      - config-data:/app/assets/config
+  config:
+    image: "jlabyer/tissue-data-explorer-config:1.5"
+    env_file: ./config_portal/.env
+    ports:
+      - "8040:8040"
+    stdin_open: true
+    tty: true
+    restart: on-failure:5
+    volumes:
+      - config-data:/config
+volumes:
+  config-data:
+    external: true

@@ -1,11 +1,14 @@
-services:
+# This compose file prepares a production image of the software, which can then
+# be published to Docker Hub and run on production using docker-compose-prod.yaml.
 
+services:
   display:
     build:
       context: .
       dockerfile: "./app/Dockerfile"
       platforms: 
         - "linux/amd64"
+        - "linux/arm64"
     ports:
       - "8050:8050"
     stdin_open: true
@@ -19,6 +22,7 @@ services:
       dockerfile: "./config_portal/Dockerfile-config"
       platforms: 
         - "linux/amd64"
+        - "linux/arm64"
     ports:
       - "8040:8040"
     stdin_open: true
@@ -29,9 +33,3 @@ services:
 volumes:
   config-data:
     external: true
-#     networks:
-#       - inside
-# networks:
-#   inside:
-#     internal: true
-#   outside:
