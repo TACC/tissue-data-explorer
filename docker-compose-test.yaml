@@ -1,3 +1,7 @@
+# This compose file is intended for running tests in a development environment
+# using the run_tests.sh script, which creates a volume and populates it with
+# test data so the tests always run on the same data.
+
 services:
   display:
     extends:

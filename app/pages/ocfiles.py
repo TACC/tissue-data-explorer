@@ -50,13 +50,15 @@ def layout(block=None, **kwargs):
         {"field": "Name", "flex": 3},
         {"field": "Link", "cellRenderer": "dsLink", "flex": 1},
     ]
+    rows = block_thumbnails.to_dict("records")
+    height = len(rows) * 120 + 49 + 15
 
     grid = dag.AgGrid(
         id="oc-files-grid",
-        rowData=block_thumbnails.to_dict("records"),
+        rowData=rows,
         columnDefs=columns,
         className="ag-theme-alpine block-grid large",
-        style={"height": 700},
+        style={"height": height},
     )
 
     return html.Div(
