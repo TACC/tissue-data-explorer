@@ -128,12 +128,6 @@ def test_make_cubes_df():
     pd.testing.assert_frame_equal(cubes_df, expected_cube_df, check_dtype=True)
 
 
-def test_check_volumetric_map_data_xlsx():
-    # test sorted
-    # test unsorted
-    pass
-
-
 def test_check_downloads_xlsx():
     str1 = make_upload_content("/app/examples/downloads.xlsx")
     b1 = decode_str(str1)
@@ -141,16 +135,11 @@ def test_check_downloads_xlsx():
     assert Path(FD["volumetric-map"]["downloads-file"]["depot"]).exists() is True
 
 
-def test_open_excel_from_bytes():
-    pass
-
-
 def test_get_volumetric_map_folder():
+    str1 = make_upload_content("/app/examples/downloads.xlsx")
+    b1 = decode_str(str1)
+    validate.check_downloads_xlsx(b1, "/app/examples/downloads.xlsx")
     assert validate.get_volumetric_map_folder("S1-12proteomics.xlsx") == (True, "S1-12")
-
-
-def test_write_excel():
-    pass
 
 
 def test_process_volumetric_map_data():
@@ -160,7 +149,7 @@ def test_process_volumetric_map_data():
     str2 = make_upload_content("/app/examples/downloads.xlsx")
     b2 = decode_str(str2)
     str3 = make_upload_content(
-        f"{FD["volumetric-map"]["downloads"]["publish"]}/S1-12/S1-12proteomics.xlsx"
+        f"{FD['volumetric-map']['downloads']['publish']}/S1-12/S1-12proteomics.xlsx"
     )
     b3 = decode_str(str3)
 
@@ -180,7 +169,7 @@ def test_process_volumetric_map_data():
     str7 = make_upload_content("/app/examples/images-example.xlsx")
     b7 = decode_str(str7)
     str8 = make_upload_content(
-        f"{FD["obj-files"]["volumes"]["publish"]}/S1_Sphere_Lower_S1-1.obj"
+        f"{FD['obj-files']['volumes']['publish']}/S1_Sphere_Lower_S1-1.obj"
     )
     b8 = decode_str(str8)
 
@@ -247,6 +236,6 @@ def test_publish_volumetric_map_data():
 
     for dir in dirs_to_check:
         assert (
-            Path(f"{FD["volumetric-map"]["downloads"]["publish"]}/{dir.name}").exists()
+            Path(f"{FD['volumetric-map']['downloads']['publish']}/{dir.name}").exists()
             is True
         )

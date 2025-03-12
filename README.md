@@ -12,14 +12,25 @@ Docker/ Docker Compose
    git clone https://github.com/TACC/tissue-data-explorer.git
    ```
 
-2. Build the image
+2. Add a `.env` file to the `config_portal` folder. See `.env.example` for format.
+
+3. Create a volume called `config-data`. If you want to use the test data provided with this environment, populate the volume with the data from the `start` folder. Otherwise you can copy in other data.
 
    ```
-   cd app
+   docker volume create config-data
+   docker run -d --name temp -v config-data:/data busybox sleep infinity
+   docker cp ./start/. temp:/data/
+   docker stop temp
+   docker rm temp
+   ```
+
+4. Build the image
+
+   ```
    docker compose -f docker-compose-dev.yaml build
    ```
 
-3. Run the image
+5. Run the image
 
    ```
    docker compose -f docker-compose-dev.yaml up
@@ -103,3 +114,5 @@ See the `documentation` folder for more information about how to prepare optical
 ## Log in credentials for configuration site
 The configuration app requires a file named `.env` in the root config app folder that contains the app secret and the credentials of authorized configuration portal users. See the file `.env.example` for file syntax and location.
 
+## Serving custom reports
+You can configure a page of links to any websites of your choice by uploading the list of links you want to include to the configuration portal. If you have project results reported in static HTML pages, you can customize the example configuration shown in `nginx/tde.conf` to serve those static HTML pages from certain routes within the app, and list those links on the reports page.
