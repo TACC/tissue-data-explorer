@@ -19,7 +19,7 @@ def title(block=None):
 register_page(
     __name__,
     path_template="/scientific-images-list/<block>",
-    path="/scientific-images-list/P1-19A",
+    path="/scientific-images-list/S1-1",
     title=title,
 )
 

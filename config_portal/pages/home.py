@@ -101,10 +101,11 @@ def layout(**kwargs):
                         ui.make_upload_card(
                             "Update tissue block and scientific image metadata",
                             [
-                                "For tissue block and scientific metadata file format, see example file:"
+                                "For tissue block and scientific image metadata file format, see example file:"
                             ],
                             "si-block",
                             MAX_FILE_SIZE,
+                            summary_note="Upload the metadata file that describes the data available for each tissue block and the characteristics of any image sets you plan to upload.",
                         ),
                         html.Div(id="output-si-block-upload"),
                     ],

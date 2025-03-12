@@ -116,3 +116,6 @@ The configuration app requires a file named `.env` in the root config app folder
 
 ## Serving custom reports
 You can configure a page of links to any websites of your choice by uploading the list of links you want to include to the configuration portal. If you have project results reported in static HTML pages, you can customize the example configuration shown in `nginx/tde.conf` to serve those static HTML pages from certain routes within the app, and list those links on the reports page.
+
+## Uploading large files
+File uploads through the configuration portal are capped at 150MB. Larger files can be added to the display app docker container. An example script is at `scripts\move-files-to-docker.sh`.

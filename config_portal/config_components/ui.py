@@ -130,7 +130,7 @@ def make_upload_card(
     if accordion:
         body_items.append(make_accordion(acc_notes))
     if summary_note:
-        body_items.append(html.P(summary_note))
+        body_items.append(html.P(summary_note, className="card-summary-note"))
     for i in range(len(dl_notes)):
         row_contents = [
             dbc.Col(html.P(dl_notes[i])),
