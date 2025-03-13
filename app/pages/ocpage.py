@@ -30,7 +30,7 @@ def title(iset=None, block=None):
 register_page(
     __name__,
     path_template="/scientific-images/<block>/<iset>",
-    path="/scientific-images/P1-19A/P1-19A-1",
+    path="/scientific-images/S1-1/S1-1-1",
     title=title,
 )
 

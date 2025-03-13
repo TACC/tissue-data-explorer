@@ -10,7 +10,6 @@ FILE_DESTINATION = {
     },
     "sci-images": "/app/assets/config/scientific-images",
     "thumbnails": {
-        "publish": "/config/scientific-images/thumbnails",
         "catalog": "/app/assets/config/scientific-images/thumbnails/thumbnails.csv",
     },
     "title": {"publish": "/app/assets/config/labels.csv"},

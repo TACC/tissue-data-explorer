@@ -4,4 +4,5 @@ venv/*
 __pycache__*
 .coverage
 .env
-*/config_portal/depot/**
+**/config_portal/depot/**
+**/config_portal/config/**

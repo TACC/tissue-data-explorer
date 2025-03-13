@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "hubmap-pancreas-data-explorer"
+name = "tissue-data-explorer"
 version = "0.1.0"
-description = "Visualize pancreas data from the HuBMAP project"
+description = "A website for presenting biomolecular datasets"
 authors = ["James Labyer"]
 license = "BSD 3-Clause License"
 readme = "README.md"

@@ -6,7 +6,7 @@ RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 
 FROM python:3.13-bookworm
 RUN apt-get update && apt-get upgrade -y && apt-get install -y python3
-WORKDIR /usr/src/app
+WORKDIR /app
 COPY --from=poetry /app/requirements.txt .
 RUN pip install -r ./requirements.txt
 COPY ./app/app.py \

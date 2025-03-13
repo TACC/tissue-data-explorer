@@ -1,6 +1,6 @@
 Tissue Block,Organ ID,Organ Description,Order,Anatomical region,Images,Reports,Volumetric Map
 S1-1,S1,Sphere 1,1,Upper,/scientific-images-list/S1-1, , 
-S1-4,S1,Sphere 1,2,Upper, , , 
+S1-4,S1,Sphere 1,2,Upper, ,/reports, 
 S1-6,S1,Sphere 1,3,Middle, , , 
 S1-7,S1,Sphere 1,4,Middle,/scientific-images-list/S1-7, , 
 S1-9,S1,Sphere 1,5,Middle, , , 
