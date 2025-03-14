@@ -197,7 +197,7 @@ def update_links(column, df):
                 "Reports": "/reports",
                 "Volumetric Map": f"/volumetric-map/{df['Tissue Block'].at[i]}",
             }
-            if not (df[column].at[i] == " "):
+            if not pd.isnull(df[column].at[i]):
                 df[column].at[i] = links[column]
             i += 1
 
@@ -224,9 +224,7 @@ def sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def check_excel_headers(
-    file: bytes, which_headers: str, fillna=True
-) -> tuple[bool, str, dict]:
+def check_excel_headers(file: bytes, which_headers: str) -> tuple[bool, str, dict]:
     """Checks that the file includes required headers and sanitizes any html.
     Returns (success, error message, dict of DataFrames if successful)
     """
@@ -237,8 +235,6 @@ def check_excel_headers(
             df = dfr[2]
         else:
             return False, dfr[1], {}
-        if fillna:
-            df.fillna(" ", inplace=True)
         # check that required columns are in the workbook
         if set(REQUIRED_HEADERS[which_headers][key]).issubset(
             set(df.columns.to_list())
@@ -814,6 +810,9 @@ def check_downloads_xlsx(file: bytes, filename: str) -> tuple[bool, str]:
             header_check[2]["downloads"],
             "Name",
         )
+        p = Path(FD["volumetric-map"]["downloads-file"]["depot"])
+        if not Path.exists(p.parent):
+            Path.mkdir(p.parent, parents=True)
         # save csv
         df.to_csv(FD["volumetric-map"]["downloads-file"]["depot"], index=False)
         # no filename because this file's presence alone should not trigger name update
@@ -906,7 +905,7 @@ def make_cubes_df(
 
 
 def check_volumetric_map_data_xlsx(file: bytes) -> tuple[bool, str]:
-    header_check = check_excel_headers(file, "volumetric-map", fillna=False)
+    header_check = check_excel_headers(file, "volumetric-map")
     if header_check[0]:
         # get block name
         block = header_check[2]["meta"]["Block"].values[0]
@@ -1044,7 +1043,7 @@ def process_obj_files(file: bytes, filename: str) -> tuple[bool, str]:
         return False, is_valid[1]
     # process summary file
     if filename == "obj-files.xlsx":
-        header_check = check_excel_headers(file, "obj-files", fillna=False)
+        header_check = check_excel_headers(file, "obj-files")
         if header_check[0]:
             try:
                 # add new entries to summary csv

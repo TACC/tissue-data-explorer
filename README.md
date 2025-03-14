@@ -14,7 +14,7 @@ Docker/ Docker Compose
 
 2. Add a `.env` file to the `config_portal` folder. See `.env.example` for format.
 
-3. Create a volume called `config-data-dev`. If you want to use the test data provided with this environment, populate the volume with the data from the `start` folder. Otherwise you can copy in other data.
+3. Create a volume called `config-data-dev`. If you want to use the test data provided with this environment, populate the volume with the data from the `start` folder. Otherwise you can create an empty environment by populating the volume with the data from the `min` folder.
 
    ```
    docker volume create config-data-dev
