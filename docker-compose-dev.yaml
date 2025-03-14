@@ -20,7 +20,7 @@ services:
       - type: bind
         source: ./styles
         target: /app/assets/styles
-      - config-data:/config
+      - config-data-dev:/config
   display-app:
     build: 
       context: .
@@ -41,7 +41,7 @@ services:
       - type: bind
         source: ./styles
         target: /app/assets/styles
-      - config-data:/app/assets/config
+      - config-data-dev:/app/assets/config
 volumes:
-  config-data:
+  config-data-dev:
     external: true

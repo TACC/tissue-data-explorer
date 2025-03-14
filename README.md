@@ -14,11 +14,11 @@ Docker/ Docker Compose
 
 2. Add a `.env` file to the `config_portal` folder. See `.env.example` for format.
 
-3. Create a volume called `config-data`. If you want to use the test data provided with this environment, populate the volume with the data from the `start` folder. Otherwise you can copy in other data.
+3. Create a volume called `config-data-dev`. If you want to use the test data provided with this environment, populate the volume with the data from the `start` folder. Otherwise you can copy in other data.
 
    ```
-   docker volume create config-data
-   docker run -d --name temp -v config-data:/data busybox sleep infinity
+   docker volume create config-data-dev
+   docker run -d --name temp -v config-data-dev:/data busybox sleep infinity
    docker cp ./start/. temp:/data/
    docker stop temp
    docker rm temp
@@ -108,8 +108,8 @@ The script `run_tests.sh` in the root project folder creates docker containers f
    docker image prune -a
    ```
 
-## Preparing assets for display on the website
-See the `documentation` folder for more information about how to prepare optical clearing files and 3d model files for display on the website. 
+## Preparing images for display on the website
+See `scripts\image_prep.md` folder for more information about how to prepare images for display on the website. 
 
 ## Log in credentials for configuration site
 The configuration app requires a file named `.env` in the root config app folder that contains the app secret and the credentials of authorized configuration portal users. See the file `.env.example` for file syntax and location.
