@@ -193,11 +193,11 @@ def update_links(column, df):
     if column in link_columns:
         while i < df[column].size:
             links = {
-                "Images": f"/scientific-images-list/{df["Tissue Block"].at[i]}",
+                "Images": f"/scientific-images-list/{df['Tissue Block'].at[i]}",
                 "Reports": "/reports",
-                "Volumetric Map": f"/volumetric-map/{df["Tissue Block"].at[i]}",
+                "Volumetric Map": f"/volumetric-map/{df['Tissue Block'].at[i]}",
             }
-            if not (df[column].at[i] == " "):
+            if not pd.isnull(df[column].at[i]):
                 df[column].at[i] = links[column]
             i += 1
 
@@ -224,9 +224,7 @@ def sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def check_excel_headers(
-    file: bytes, which_headers: str, fillna=True
-) -> tuple[bool, str, dict]:
+def check_excel_headers(file: bytes, which_headers: str) -> tuple[bool, str, dict]:
     """Checks that the file includes required headers and sanitizes any html.
     Returns (success, error message, dict of DataFrames if successful)
     """
@@ -237,8 +235,6 @@ def check_excel_headers(
             df = dfr[2]
         else:
             return False, dfr[1], {}
-        if fillna:
-            df.fillna(" ", inplace=True)
         # check that required columns are in the workbook
         if set(REQUIRED_HEADERS[which_headers][key]).issubset(
             set(df.columns.to_list())
@@ -254,6 +250,9 @@ def check_excel_headers(
 
 
 def process_si_block_file(file: bytes, which_headers: str) -> tuple[bool, str]:
+    p = Path(FD["si-block"]["block-data"]["depot"])
+    if not Path.exists(p.parent):
+        Path.mkdir(p.parent, parents=True)
     header_check = check_excel_headers(file, which_headers)
     if header_check[0]:
         for key in REQUIRED_HEADERS[which_headers].keys():
@@ -376,6 +375,9 @@ def process_sci_image(file: bytes, filename: str) -> tuple[bool, str, str]:
 
     Returns (check results, error message)
     """
+    p = Path(FD["sci-images"]["depot"])
+    if not Path.exists(p):
+        Path.mkdir(p, parents=True)
     df = pd.read_csv(FD["si-block"]["si-files"]["publish"])
     if df.empty:
         return False, "You must upload image metadata before uploading images"
@@ -417,7 +419,7 @@ def update_title(value: str) -> tuple[str, str, str]:
                 dest = Path(FD["title"]["depot"])
                 if not Path.exists(dest.parent):
                     Path.mkdir(dest.parent, parents=True)
-                df.to_csv(f"{FD["title"]["depot"]}", index=False)
+                df.to_csv(f"{FD['title']['depot']}", index=False)
                 p = Path(FD["title"]["depot"])
                 t = Path(FD["title"]["publish"])
                 shutil.copy2(p, t)
@@ -440,9 +442,10 @@ def publish_si_block() -> tuple[str, str, str]:
         for key in FD["si-block"].keys():
             p = Path(FD["si-block"][key]["depot"])
             t = Path(FD["si-block"][key]["publish"])
-            shutil.move(p, t)
-    except FileNotFoundError as err:
-        return ("Metadata not updated", f"{err}", "failure")
+            if p.exists():
+                shutil.move(p, t)
+    except FileNotFoundError:
+        return ("Metadata not updated", "File not found", "failure")
     return (
         "Metadata updated",
         "The configuration has been updated. Refresh the public-facing app to see the changes.",
@@ -522,9 +525,9 @@ def generate_thumbnails(idx, tdf):
                 imgs.append(Image.open(igroup["destination"].values[j]))
         im = make_thumbnail(imgs)
         set_name = new_df["Image Set"].values[0]
-        dest = Path(f"{FD["sci-images"]["publish"]}/thumbnails/{set_name}")
+        dest = Path(f"{FD['sci-images']['publish']}/thumbnails/{set_name}")
         thumbnail_loc = (
-            f"{FD["thumbnails"]["publish"]}/{set_name}/{parents[i]}_thumbnail.png"
+            f"{FD['thumbnails']['publish']}/{set_name}/{parents[i]}_thumbnail.png"
         )
         if not Path.exists(dest):
             Path.mkdir(dest, parents=True)
@@ -539,7 +542,7 @@ def generate_thumbnails(idx, tdf):
             new_df["Tissue Block"].values[0],
             f"../../{display_shared_vol_root}{thumbnail_loc}",
             new_df["File"].values[0],
-            f"/scientific-images/{new_df["Tissue Block"].values[0]}/{set_name}",
+            f"/scientific-images/{new_df['Tissue Block'].values[0]}/{set_name}",
         ]
     # update the thumbnails record so that the display app can access the new thumbnails
     update_thumbnails_record(new_tr)
@@ -645,7 +648,7 @@ def publish_sci_images() -> tuple[str, str, str]:
     tdi = 0
     # iterate over images in depot
     for file in files:
-        child = Path(f"{FD["sci-images"]["depot"]}/{file}")
+        child = Path(f"{FD['sci-images']['depot']}/{file}")
         # check if a file or dir
         if child.is_file():
             # if file, look up info about destination dir structure
@@ -660,7 +663,7 @@ def publish_sci_images() -> tuple[str, str, str]:
                     "failure",
                 )
             try:
-                dest_dir = f"{FD["sci-images"]["publish"]}/{row["Tissue Block"].values[0]}/{match_info[1]}"
+                dest_dir = f"{FD['sci-images']['publish']}/{row['Tissue Block'].values[0]}/{match_info[1]}"
                 tdf, tdi = update_new_thumbnails_list(
                     tdf,
                     tdi,
@@ -686,7 +689,9 @@ def process_content(
     Returns (success, error message)"""
     if content == "":
         return False, "One or more files were too large."
-
+    # p = Path()
+    # if not Path.exists(dest):
+    #     Path.mkdir(dest, parents=True)
     content_type, content_string = content.split(",")
     decoded = base64.b64decode(content_string)
     is_valid_type = check_file_type(decoded, filetype, filename)
@@ -713,7 +718,7 @@ def is_valid_filename(*args, fn="") -> bool:
     else:
         return (
             False,
-            f"{fn} contains the following forbidden character sequence(s): {", ".join(matches)}",
+            f"{fn} contains the following forbidden character sequence(s): {', '.join(matches)}",
         )
 
 
@@ -805,6 +810,9 @@ def check_downloads_xlsx(file: bytes, filename: str) -> tuple[bool, str]:
             header_check[2]["downloads"],
             "Name",
         )
+        p = Path(FD["volumetric-map"]["downloads-file"]["depot"])
+        if not Path.exists(p.parent):
+            Path.mkdir(p.parent, parents=True)
         # save csv
         df.to_csv(FD["volumetric-map"]["downloads-file"]["depot"], index=False)
         # no filename because this file's presence alone should not trigger name update
@@ -897,11 +905,11 @@ def make_cubes_df(
 
 
 def check_volumetric_map_data_xlsx(file: bytes) -> tuple[bool, str]:
-    header_check = check_excel_headers(file, "volumetric-map", fillna=False)
+    header_check = check_excel_headers(file, "volumetric-map")
     if header_check[0]:
         # get block name
         block = header_check[2]["meta"]["Block"].values[0]
-        loc = f"{FD["volumetric-map"]["meta"]["depot"]}/{block}"
+        loc = f"{FD['volumetric-map']['meta']['depot']}/{block}"
         # check if loc exists
         dest = Path(loc)
         if not Path.exists(dest):
@@ -934,6 +942,9 @@ def process_volumetric_map_data(file: bytes, filename: str) -> tuple[bool, str]:
     """Takes a file, checks the headers if metadata file, and saves them file to the depot.
     Overwrites file if it already exists.
     Returns (success, error message)"""
+    p = Path(FD["volumetric-map"]["meta"]["depot"])
+    if not Path.exists(p):
+        Path.mkdir(p, parents=True)
     # throw an error if filename is not valid
     is_valid = is_valid_filename(filename)
     if not is_valid[0]:
@@ -949,7 +960,7 @@ def process_volumetric_map_data(file: bytes, filename: str) -> tuple[bool, str]:
                 block = get_volumetric_map_folder(filename)
                 if not block[0]:
                     return False, block[1]
-                loc = f"{FD["volumetric-map"]["downloads"]["depot"]}/{block[1]}"
+                loc = f"{FD['volumetric-map']['downloads']['depot']}/{block[1]}"
                 return write_excel(open_results[2], filename, loc)
             except Exception as err:
                 app_logger.debug(traceback.print_exc())
@@ -961,7 +972,7 @@ def process_volumetric_map_data(file: bytes, filename: str) -> tuple[bool, str]:
             block = get_volumetric_map_folder(filename)
             if not block[0]:
                 return False, block[1]
-            loc = f"{FD["volumetric-map"]["downloads"]["depot"]}/{block[1]}"
+            loc = f"{FD['volumetric-map']['downloads']['depot']}/{block[1]}"
             return save_generic_file(loc, file, filename)
         except Exception as err:
             app_logger.debug(traceback.print_exc())
@@ -1003,7 +1014,7 @@ def publish_volumetric_map_data() -> tuple[str, str, str]:
     try:
         for item in dirs_to_move:
             move_dir(
-                item, f"{FD["volumetric-map"]["downloads"]["publish"]}/{item.name}"
+                item, f"{FD['volumetric-map']['downloads']['publish']}/{item.name}"
             )
         # update entries in published downloads.csv
         publish_entries(
@@ -1011,9 +1022,9 @@ def publish_volumetric_map_data() -> tuple[str, str, str]:
             FD["volumetric-map"]["downloads-file"]["publish"],
             "Name",
         )
-    except FileNotFoundError as err:
+    except FileNotFoundError:
         app_logger.debug(traceback.print_exc())
-        return ("Metadata not updated", f"{err}", "failure")
+        return ("Metadata not updated", "File not found", "failure")
     except Exception:
         app_logger.debug(traceback.print_exc())
     return (
@@ -1024,12 +1035,15 @@ def publish_volumetric_map_data() -> tuple[str, str, str]:
 
 
 def process_obj_files(file: bytes, filename: str) -> tuple[bool, str]:
+    p = Path(FD["obj-files"]["volumes"]["depot"])
+    if not Path.exists(p):
+        Path.mkdir(p, parents=True)
     is_valid = is_valid_filename(filename)
     if not is_valid[0]:
         return False, is_valid[1]
     # process summary file
     if filename == "obj-files.xlsx":
-        header_check = check_excel_headers(file, "obj-files", fillna=False)
+        header_check = check_excel_headers(file, "obj-files")
         if header_check[0]:
             try:
                 # add new entries to summary csv
@@ -1037,12 +1051,12 @@ def process_obj_files(file: bytes, filename: str) -> tuple[bool, str]:
                 if not Path.exists(dest):
                     Path.mkdir(dest, parents=True)
                 df = update_entries(
-                    f"{FD["obj-files"]["summary"]["depot"]}/obj-files.csv",
+                    f"{FD['obj-files']['summary']['depot']}/obj-files.csv",
                     header_check[2]["files"],
                     "File",
                 )
                 df.to_csv(
-                    f"{FD["obj-files"]["summary"]["depot"]}/obj-files.csv", index=False
+                    f"{FD['obj-files']['summary']['depot']}/obj-files.csv", index=False
                 )
                 return True, ""
             except Exception as err:
@@ -1069,8 +1083,8 @@ def publish_obj_files():
             move_dir(p, FD["obj-files"]["volumes"]["publish"])
         # update volume entries
         publish_entries(
-            f"{FD["obj-files"]["summary"]["depot"]}/obj-files.csv",
-            f"{FD["obj-files"]["summary"]["publish"]}/obj-files.csv",
+            f"{FD['obj-files']['summary']['depot']}/obj-files.csv",
+            f"{FD['obj-files']['summary']['publish']}/obj-files.csv",
             "File",
         )
         return (
@@ -1084,6 +1098,9 @@ def publish_obj_files():
 
 
 def process_reports_file(file: bytes, *args) -> tuple[bool, str]:
+    p = Path(FD["reports"]["depot"])
+    if not Path.exists(p.parent):
+        Path.mkdir(p.parent, parents=True)
     header_check = check_excel_headers(file, "reports")
     if header_check[0]:
         header_check[2]["reports"].to_csv(FD["reports"]["depot"], index=False)
@@ -1099,8 +1116,8 @@ def publish_reports_file() -> tuple[str, str, str]:
         p = Path(FD["reports"]["depot"])
         t = Path(FD["reports"]["publish"])
         shutil.move(p, t)
-    except FileNotFoundError as err:
-        return ("Metadata not updated", f"{err}", "failure")
+    except FileNotFoundError:
+        return ("Metadata not updated", "File not found", "failure")
     return (
         "Metadata updated",
         "The configuration has been updated. Refresh the public-facing app to see the changes.",

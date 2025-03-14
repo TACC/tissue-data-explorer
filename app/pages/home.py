@@ -42,7 +42,10 @@ def layout():
             "Missing required configuration, please contact an administrator to resolve the issue.",
             "failure",
         )
+
     organs = blocks["Organ ID"].unique()
+    if len(organs) == 0:
+        return html.Div("No dataset metadata has been loaded.")
 
     app_logger.debug(f"Data columns imported for home page grid:\n{blocks.columns}")
 

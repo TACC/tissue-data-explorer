@@ -274,8 +274,8 @@ def test_uf_cube_category():
         block="S1-12",
     )
     assert len(fig1["data"][0]["z"]) == 1440
-    assert len(fig2["data"][0]["z"]) == 728
-    assert len(fig3["data"][0]["z"]) == 712
+    assert len(fig2["data"][0]["z"]) == 336
+    assert len(fig3["data"][0]["z"]) == 1104
 
 
 def test_uf_point_opacity():
@@ -577,8 +577,8 @@ def test_uf_sphere_category():
     )
 
     assert len(fig1["data"]) == 165
-    assert len(fig2["data"]) == 85
-    assert len(fig3["data"]) == 80
+    assert len(fig2["data"]) == 39
+    assert len(fig3["data"]) == 126
 
 
 def test_uo_protein():

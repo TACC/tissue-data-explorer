@@ -434,7 +434,7 @@ def send_obj_example_1(n_clicks):
     prevent_initial_call=True,
 )
 def send_obj_example_2(n_clicks):
-    return dcc.send_file("examples/images-example.xlsx")
+    return dcc.send_file("examples/sphere.obj")
 
 
 @callback(
@@ -443,7 +443,7 @@ def send_obj_example_2(n_clicks):
     prevent_initial_call=True,
 )
 def send_obj_example_3(n_clicks):
-    return dcc.send_file("examples/images-example.xlsx")
+    return dcc.send_file("examples/S1_Sphere_Lower_S1-1.obj")
 
 
 @callback(
