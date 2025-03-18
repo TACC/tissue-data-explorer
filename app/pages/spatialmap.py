@@ -113,7 +113,6 @@ def layout(block=None, **kwargs):
 
     values = list(value_info.keys())
     category_opts["Selected"] = defaults["d_category"]
-    # value_min_max = find_global_value_bounds(value_info)
 
     download_content = ui.make_downloads_ui_elements(
         downloads[downloads["Block"] == block]
@@ -137,7 +136,6 @@ def layout(block=None, **kwargs):
                     dcc.Store(id="category-selected"),
                     dcc.Store(id="category-store", data=category_opts),
                     dcc.Store(id="value-range-store", data=value_info),
-                    # dcc.Store(id="value-range-store", data=value_min_max),
                     dcc.Store(id="axes-store", data=axes),
                     dcc.Store(id="block-store", data=block),
                 ],
@@ -232,7 +230,6 @@ def update_fig(
     category_selected="All",
     category_data={},
     value_range_dict={},
-    # value_ranges=(0, 1),
     axes={},
     block="",
 ):

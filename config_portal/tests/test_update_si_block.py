@@ -26,8 +26,8 @@ def test_process_si_block_file():
     assert validate.process_si_block_file(b1, "si-block") == (True, "")
 
     # check that files are in depot
-    blocks = pd.read_csv(f"{FD["si-block"]["block-data"]["depot"]}")
-    si_files = pd.read_csv(f"{FD["si-block"]["si-files"]["depot"]}")
+    blocks = pd.read_csv(f"{FD['si-block']['block-data']['depot']}")
+    si_files = pd.read_csv(f"{FD['si-block']['si-files']['depot']}")
 
     # check number of rows and columns in each file
     assert len(blocks.columns) == 8
@@ -57,8 +57,8 @@ def test_check_excel_headers():
 
     assert validate.check_excel_headers(b1, "si-block")[0] is True
     assert validate.check_excel_headers(b2, "downloads")[0] is True
-    assert validate.check_excel_headers(b3, "volumetric-map", fillna=False)[0] is True
-    assert validate.check_excel_headers(b4, "obj-files", fillna=False)[0] is True
+    assert validate.check_excel_headers(b3, "volumetric-map")[0] is True
+    assert validate.check_excel_headers(b4, "obj-files")[0] is True
 
     assert validate.check_excel_headers(b1, "downloads")[0] is False
     assert validate.check_excel_headers(b2, "volumetric-map")[0] is False
@@ -69,22 +69,22 @@ def test_check_excel_headers():
 def test_update_links():
     data = {
         "Tissue Block": ["S1-1", "S1-14"],
-        "Images": [" ", True],
-        "Reports": [True, " "],
-        "Volumetric Map": [True, " "],
+        "Images": [None, True],
+        "Reports": [True, None],
+        "Volumetric Map": [True, None],
     }
     df = pd.DataFrame(data=data)
     validate.update_links("Images", df)
-    assert df.loc[0, "Images"] == " "
+    assert df.loc[0, "Images"] is None
     assert df.loc[1, "Images"] == "/scientific-images-list/S1-14"
 
     validate.update_links("Reports", df)
     assert df.loc[0, "Reports"] == "/reports"
-    assert df.loc[1, "Reports"] == " "
+    assert df.loc[1, "Reports"] is None
 
     validate.update_links("Volumetric Map", df)
     assert df.loc[0, "Volumetric Map"] == "/volumetric-map/S1-1"
-    assert df.loc[1, "Volumetric Map"] == " "
+    assert df.loc[1, "Volumetric Map"] is None
 
 
 def test_publish_si_block():
@@ -130,7 +130,7 @@ def test_process_content():
     # make content strings
     str1 = make_upload_content("/app/examples/downloads.xlsx")
     str2 = make_upload_content(
-        f"{FD["obj-files"]["volumes"]["publish"]}/S1_Sphere_Lower_S1-1.obj"
+        f"{FD['obj-files']['volumes']['publish']}/S1_Sphere_Lower_S1-1.obj"
     )
     str3 = ""
 
@@ -152,13 +152,13 @@ def test_process_content():
 def test_check_file_type():
     str1 = make_upload_content("/app/examples/downloads.xlsx")
     str2 = make_upload_content(
-        f"{FD["obj-files"]["volumes"]["publish"]}/S1_Sphere_Lower_S1-1.obj"
+        f"{FD['obj-files']['volumes']['publish']}/S1_Sphere_Lower_S1-1.obj"
     )
     str3 = make_upload_content(
-        f"{FD["sci-images"]["publish"]}/S1-14/S1-14-1/S1-14-1_C00000.png"
+        f"{FD['sci-images']['publish']}/S1-14/S1-14-1/S1-14-1_C00000.png"
     )
     str4 = make_upload_content(
-        f"{FD["sci-images"]["publish"]}/S1-14/S1-14-1/S1-14-1.tif"
+        f"{FD['sci-images']['publish']}/S1-14/S1-14-1/S1-14-1.tif"
     )
     b1 = decode_str(str1)
     b2 = decode_str(str2)

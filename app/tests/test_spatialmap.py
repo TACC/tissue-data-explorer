@@ -11,7 +11,6 @@ from pages.spatialmap import (
     make_axes,
     make_layers,
     load_data,
-    find_global_value_bounds,
     update_fig,
 )
 
@@ -21,7 +20,6 @@ D_OPACITY = 0.4
 D_LAYER = "All"
 
 page_info, defaults, layers, cat_opts, value_info, axes, downloads = load_data("S1-12")
-ranges = find_global_value_bounds(value_info)
 
 
 def test_make_defaults():
@@ -117,12 +115,6 @@ def test_load_data():
     assert downloads.equals(expected_downloads)
 
 
-def test_find_global_value_bounds():
-    test_dict = {"A": {"Min": 0, "Max": 0}, "B": {"Min": 0, "Max": 1}}
-    expected_bounds = (0, 1)
-    assert find_global_value_bounds(test_dict) == expected_bounds
-
-
 def test_uf_cube_opacity():
     # test that fig1's opacity value is updated as expected
     fig1 = update_fig(
@@ -134,7 +126,7 @@ def test_uf_cube_opacity():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -147,7 +139,7 @@ def test_uf_cube_opacity():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -164,7 +156,7 @@ def test_uf_cube_opacity():
             "All",
             "All",
             category_data=cat_opts,
-            value_ranges=ranges,
+            value_range_dict=value_info,
             axes=axes,
             block="S1-12",
         )
@@ -181,7 +173,7 @@ def test_uf_cube_cscheme():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -210,7 +202,7 @@ def test_uf_cube_layer():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -223,7 +215,7 @@ def test_uf_cube_layer():
         "Layer 2",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -243,7 +235,7 @@ def test_uf_cube_category():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -256,7 +248,7 @@ def test_uf_cube_category():
         "All",
         "Pixels with gland tissue",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -269,7 +261,7 @@ def test_uf_cube_category():
         "All",
         "Pixels without gland tissue",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -289,7 +281,7 @@ def test_uf_point_opacity():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -302,7 +294,7 @@ def test_uf_point_opacity():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -319,7 +311,7 @@ def test_uf_point_opacity():
             "All",
             "All",
             category_data=cat_opts,
-            value_ranges=ranges,
+            value_range_dict=value_info,
             axes=axes,
             block="S1-12",
         )
@@ -336,7 +328,7 @@ def test_uf_point_cscheme():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -365,7 +357,7 @@ def test_uf_point_layer():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -378,7 +370,7 @@ def test_uf_point_layer():
         "Layer 3",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -399,7 +391,7 @@ def test_uf_layer_cscheme():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -428,7 +420,7 @@ def test_uf_layer_layer():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -441,7 +433,7 @@ def test_uf_layer_layer():
         "Layer 2",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -483,7 +475,7 @@ def test_uf_sphere_cscheme():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -512,7 +504,7 @@ def test_uf_sphere_layer():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -525,7 +517,7 @@ def test_uf_sphere_layer():
         "Layer 4",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -545,7 +537,7 @@ def test_uf_sphere_category():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -558,7 +550,7 @@ def test_uf_sphere_category():
         "All",
         "Pixels with gland tissue",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -571,7 +563,7 @@ def test_uf_sphere_category():
         "All",
         "Pixels without gland tissue",
         category_data=cat_opts,
-        value_ranges=ranges,
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
@@ -592,7 +584,7 @@ def test_uo_protein():
         "All",
         "All",
         category_data=cat_opts,
-        value_ranges=(0, 1),
+        value_range_dict=value_info,
         axes=axes,
         block="S1-12",
     )
