@@ -560,7 +560,6 @@ def update_thumbnails_record(new_tr):
             Path.mkdir(dest, parents=True)
         new_tr.to_csv(FD["thumbnails"]["catalog"], index=False)
         return
-    # check for duplicate records and skip them (file info should stay the same even if image is new)
     df_idx = df.shape[0]
     for i in range(new_tr.shape[0]):
         # look up row in existing df by "Name"
@@ -569,6 +568,8 @@ def update_thumbnails_record(new_tr):
         # if not found, add new row
         if new_df.empty:
             df.loc[df_idx] = new_tr.loc[i]
+    # drop duplicate records
+    df.drop_duplicates(subset=["Name"], inplace=True)
     # once all rows are processed, save updated data
     df.to_csv(FD["thumbnails"]["catalog"], index=False)
 
@@ -638,6 +639,8 @@ def publish_sci_images() -> tuple[str, str, str]:
         )
 
     p = Path(FD["sci-images"]["depot"])
+    if not Path.exists(p):
+        Path.mkdir(p, parents=True)
 
     # get images in depot
     files = os.listdir(p)
@@ -689,9 +692,7 @@ def process_content(
     Returns (success, error message)"""
     if content == "":
         return False, "One or more files were too large."
-    # p = Path()
-    # if not Path.exists(dest):
-    #     Path.mkdir(dest, parents=True)
+
     content_type, content_string = content.split(",")
     decoded = base64.b64decode(content_string)
     is_valid_type = check_file_type(decoded, filetype, filename)

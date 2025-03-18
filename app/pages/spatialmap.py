@@ -71,12 +71,12 @@ def make_layers(z_axis: list) -> list:
 
 def load_data(block: str) -> tuple[dict, dict, list, list, list, dict]:
     # page info dict, defaults dict, layers, category options, values, axes
-    dir = f"{FD["volumetric-map"]}/{block}"
+    dir = f"{FD['volumetric-map']}/{block}"
     meta = pd.read_csv(f"{dir}/meta.csv")
     value_ranges = pd.read_csv(f"{dir}/value_ranges.csv", index_col="Row Label")
     category_labels = pd.read_csv(f"{dir}/category_labels.csv")
     vol_measurements = pd.read_csv(f"{dir}/vol_measurements.csv")
-    downloads = pd.read_csv(f"{FD["volumetric-map"]}/downloads.csv")
+    downloads = pd.read_csv(f"{FD['volumetric-map']}/downloads.csv")
 
     # Get title and desc
     page_info = meta.iloc[0].to_dict()
@@ -99,13 +99,6 @@ def load_data(block: str) -> tuple[dict, dict, list, list, list, dict]:
     return page_info, defaults, layers, category_opts, value_info, axes, downloads
 
 
-def find_global_value_bounds(value_info: dict) -> tuple[float, float]:
-    value_keys = value_info.keys()
-    mins = [value_info[key]["Min"] for key in value_keys]
-    maxes = [value_info[key]["Max"] for key in value_keys]
-    return math.floor(min(mins)), math.ceil(max(maxes))
-
-
 def layout(block=None, **kwargs):
     try:
         page_info, defaults, layers, category_opts, value_info, axes, downloads = (
@@ -120,7 +113,7 @@ def layout(block=None, **kwargs):
 
     values = list(value_info.keys())
     category_opts["Selected"] = defaults["d_category"]
-    value_min_max = find_global_value_bounds(value_info)
+    # value_min_max = find_global_value_bounds(value_info)
 
     download_content = ui.make_downloads_ui_elements(
         downloads[downloads["Block"] == block]
@@ -143,7 +136,8 @@ def layout(block=None, **kwargs):
                     dcc.Store(id="layer-store-sm"),
                     dcc.Store(id="category-selected"),
                     dcc.Store(id="category-store", data=category_opts),
-                    dcc.Store(id="value-range-store", data=value_min_max),
+                    dcc.Store(id="value-range-store", data=value_info),
+                    # dcc.Store(id="value-range-store", data=value_min_max),
                     dcc.Store(id="axes-store", data=axes),
                     dcc.Store(id="block-store", data=block),
                 ],
@@ -237,7 +231,8 @@ def update_fig(
     layer="All",
     category_selected="All",
     category_data={},
-    value_ranges=(0, 1),
+    value_range_dict={},
+    # value_ranges=(0, 1),
     axes={},
     block="",
 ):
@@ -261,10 +256,10 @@ def update_fig(
     for key in settings.keys():
         if props[key] is not None:
             settings[key] = props[key]
-
+    value_ranges = (value_range_dict[value]["Min"], value_range_dict[value]["Max"])
     if tab == "cube-tab":
         try:
-            df = pd.read_csv(f"{FD["volumetric-map"]}/{block}/cube_data.csv")
+            df = pd.read_csv(f"{FD['volumetric-map']}/{block}/cube_data.csv")
         except FileNotFoundError:
             return alerts.send_toast(
                 "Cannot load page",
@@ -285,7 +280,7 @@ def update_fig(
         )
     elif tab == "point-tab":
         try:
-            df = pd.read_csv(f"{FD["volumetric-map"]}/{block}/points_data.csv")
+            df = pd.read_csv(f"{FD['volumetric-map']}/{block}/points_data.csv")
         except FileNotFoundError:
             return alerts.send_toast(
                 "Cannot load page",
@@ -303,7 +298,7 @@ def update_fig(
         )
     elif tab == "layer-tab":
         try:
-            df = pd.read_csv(f"{FD["volumetric-map"]}/{block}/points_data.csv")
+            df = pd.read_csv(f"{FD['volumetric-map']}/{block}/points_data.csv")
         except FileNotFoundError:
             return alerts.send_toast(
                 "Cannot load page",
@@ -320,7 +315,7 @@ def update_fig(
         )
     elif tab == "sphere-tab":
         try:
-            df = pd.read_csv(f"{FD["volumetric-map"]}/{block}/points_data.csv")
+            df = pd.read_csv(f"{FD['volumetric-map']}/{block}/points_data.csv")
         except FileNotFoundError:
             return alerts.send_toast(
                 "Cannot load page",
@@ -347,7 +342,7 @@ def update_fig(
 )
 def display_output(n_clicks, id):
     try:
-        downloads = pd.read_csv(f"{FD["volumetric-map"]}/downloads.csv")
+        downloads = pd.read_csv(f"{FD['volumetric-map']}/downloads.csv")
     except FileNotFoundError:
         return alerts.send_toast(
             "Cannot load page",
@@ -355,7 +350,7 @@ def display_output(n_clicks, id):
             "failure",
         )
     row = downloads.loc[id["index"]]
-    file_path = Path(f"{FD["volumetric-map"]}/{row["Block"]}/{row["Name"]}")
+    file_path = Path(f"{FD['volumetric-map']}/{row['Block']}/{row['Name']}")
     if not Path.exists(file_path):
         return no_update
-    return dcc.send_file(f"{FD["volumetric-map"]}/{row["Block"]}/{row["Name"]}")
+    return dcc.send_file(f"{FD['volumetric-map']}/{row['Block']}/{row['Name']}")
