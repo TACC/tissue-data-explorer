@@ -16,7 +16,6 @@ from pathlib import Path
 from pages.constants import FILE_DESTINATION as FD
 from components import alerts
 import pages.ui as ui
-import math
 
 app_logger = logging.getLogger(__name__)
 gunicorn_logger = logging.getLogger("gunicorn.error")
