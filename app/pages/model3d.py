@@ -215,7 +215,6 @@ def display_click_data(click_data):
             "View volumetric map": "Volumetric Map",
         }
         for key in data_options.keys():
-            print(type(check_null(row.iloc[0][data_options[key]])))
             if check_null(row.iloc[0][data_options[key]]) != " ":
                 if key == "Anatomical region: ":
                     child = html.P(key + row.iloc[0][data_options[key]])
