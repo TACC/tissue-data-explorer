@@ -19,6 +19,13 @@ blocks = pd.read_csv(FD["si-block"]["block-data"])
 traces = pd.read_csv(f"{FD["obj-files"]["summary"]}/obj-files.csv")
 
 
+def check_null(value):
+    if pd.isna(value):
+        return " "
+    else:
+        return value
+
+
 def read_obj(file):
     organ = Wavefront(file, collect_faces=True)
     matrix_vertices = np.array(organ.vertices)
@@ -193,34 +200,30 @@ def display_click_data(click_data):
             return blank_card_content
         block_name = row.iloc[0]["Tissue Block"]
         app_logger.debug(f"Displaying click data for {block_name}")
-        item_data = [
-            {"label": "Block ", "value": row.iloc[0]["Tissue Block"]},
-            {"label": "Anatomical region: ", "value": row.iloc[0]["Anatomical region"]},
-            {
-                "label": "View scientific images",
-                "value": row.iloc[0]["Images"],
-            },
-            {"label": "View reports", "value": row.iloc[0]["Reports"]},
-            {"label": "View volumetric map", "value": row.iloc[0]["Volumetric Map"]},
-        ]
         card_content = []
         card_body_content = []
-        for i in range(5):
-            label_str = str(item_data[i]["label"])
-            value_str = str(item_data[i]["value"])
-            if i == 0:
-                card_content.append(
-                    dbc.CardHeader(label_str + value_str, class_name="card-title")
-                )
-            elif i == 1:
-                child = html.P(label_str + value_str)
-                card_body_content.append(child)
-            elif item_data[i]["value"] == " ":
-                continue
-            else:
-                value_str = item_data[i]["value"]
-                child = html.P([dcc.Link(label_str, href=f"{value_str}")])
-                card_body_content.append(child)
+        card_content.append(
+            dbc.CardHeader(
+                "Block" + " " + str(row.iloc[0]["Tissue Block"]),
+                class_name="card-title",
+            )
+        )
+        data_options = {
+            "Anatomical region: ": "Anatomical region",
+            "View scientific images": "Images",
+            "View reports": "Reports",
+            "View volumetric map": "Volumetric Map",
+        }
+        for key in data_options.keys():
+            print(type(check_null(row.iloc[0][data_options[key]])))
+            if check_null(row.iloc[0][data_options[key]]) != " ":
+                if key == "Anatomical region: ":
+                    child = html.P(key + row.iloc[0][data_options[key]])
+                    card_body_content.append(child)
+                else:
+                    value_str = row.iloc[0][data_options[key]]
+                    child = html.P([dcc.Link(key, href=f"{value_str}")])
+                    card_body_content.append(child)
         card_content.append(dbc.CardBody(card_body_content))
         return card_content
     else:
