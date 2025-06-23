@@ -29,12 +29,22 @@ def test_check_image_name():
 
 def test_check_png_name_ending():
     # expect success
-    assert validate.check_png_name_ending("S1-1-1_C00000.png")[0] is True
-    assert validate.check_png_name_ending("S1-1-1_C_C00000.png")[0] is True
+    filename1 = "S1-1-1_C00000.png"
+    nameparts1 = filename1.split("_C")
+    assert validate.check_png_name_ending(filename1, nameparts1)[0] is True
+
+    filename2 = "S1-1-1_C_C00000.png"
+    nameparts2 = filename2.split("_C")
+    assert validate.check_png_name_ending(filename2, nameparts2)[0] is True
 
     # expect failure
-    assert validate.check_png_name_ending("S1-1-1.png")[0] is False
-    assert validate.check_png_name_ending("S1-1-1_C0000.png")[0] is False
+    filename3 = "S1-1-1.png"
+    nameparts3 = filename3.split("_C")
+    assert validate.check_png_name_ending(filename3, nameparts3)[0] is False
+
+    filename4 = "S1-1-1_C0000.png"
+    nameparts4 = filename4.split("_C")
+    assert validate.check_png_name_ending(filename4, nameparts4)[0] is False
 
 
 def test_process_sci_image():
@@ -45,6 +55,7 @@ def test_process_sci_image():
     str2 = make_upload_content("/app/examples/images-example.xlsx")
     b2 = decode_str(str2)
 
+    print(validate.process_sci_image(b1, "S1-1-1_C00000.png"))
     assert validate.process_sci_image(b1, "S1-1-1_C00000.png")[0] is True
     assert validate.process_sci_image(b2, "images-example.xlsx")[0] is False
 

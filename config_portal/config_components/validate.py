@@ -273,89 +273,13 @@ def process_si_block_file(file: bytes, which_headers: str) -> tuple[bool, str]:
         return (header_check[0], header_check[1])
 
 
-def check_image_name(
-    filename: str, df: pd.DataFrame
-) -> tuple[int, str, pd.DataFrame, int, str]:
-    """This function checks that the provided image name can be associated with an entry
-    in the provided DataFrame. PNGs should be named like:
-
-    {Source file name}_C{Channel number, starting at zero}{sequence number, starting at zero and padded with zeroes to four digits}
-
-    Returns (number of matches, filename stem, df filtered to the relevant row, number of channels, error message)
-    """
-    ext = Path(filename).suffix
-    matches = 0
-    namestem = ""
-    if ext != ".png":
-        try:
-            matches = df["File"].eq(filename).sum()
-            namestem = Path(filename).stem
-            filename_reg = re.escape(filename)
-            new_df = df[df["File"].str.fullmatch(filename_reg)]
-            channel = None
-        except Exception as err:
-            return (
-                0,
-                False,
-                False,
-                False,
-                f"{err}",
-            )
-    else:
-        try:
-            nameparts = filename.split("_C")
-            if len(nameparts) < 2:
-                return (
-                    0,
-                    False,
-                    False,
-                    False,
-                    f"Filename {filename} must use the sequence _C to separate channel data",
-                )
-            namestem = "_C".join(nameparts[:-1])
-            namestem_reg = re.escape(namestem)
-            nr = namestem_reg + NAMEREG
-            matches = df["File"].str.contains(nr).sum()
-            new_df = df[df["File"].str.contains(nr)]
-        except Exception as err:
-            return (
-                0,
-                False,
-                False,
-                False,
-                f"{err}",
-            )
-        try:
-            channel = int(nameparts[-1][0])
-        except ValueError:
-            return (
-                0,
-                False,
-                False,
-                False,
-                "You must specify the channel for this image using the sequence _C as a separator",
-            )
-
-    if matches != 1:
-        return (
-            0,
-            False,
-            False,
-            False,
-            f"Filename {filename} must match exactly one filename in metadata",
-        )
-    else:
-        return matches, namestem, new_df, channel, ""
-
-
-def check_png_name_ending(filename: str) -> tuple[bool, str]:
+def check_png_name_ending(filename: str, nameparts: list) -> tuple[bool, str]:
     """Checks that the second half of a PNG follows the required naming convention:
 
     {Source file name}_C{Channel number, starting at zero}{sequence number, starting at zero and padded with zeroes to four digits}
 
     Returns (match test result, error message)
     """
-    nameparts = filename.split("_C")
     numreg = r"\d{5}\.png"
     nr = re.compile(numreg)
     m = nr.fullmatch(nameparts[-1])
@@ -366,6 +290,92 @@ def check_png_name_ending(filename: str) -> tuple[bool, str]:
             False,
             f"Filename {filename} must contain exactly five consecutive number characters between the _C sequence and the file extension",
         )
+
+
+def check_image_name(filename: str, df: pd.DataFrame) -> tuple[bool, str, str]:
+    """
+    Checks that the provided image name can be associated with an entry in the provided DataFrame.
+
+    If the image is a PNG that is not an original image, checks that the name matches the PNG naming convention.
+
+    Returns (name validity, namestem, error message)
+    """
+    ext = Path(filename).suffix
+    matches = 0
+    namestem = ""
+
+    try:
+        matches = df["File"].eq(filename).sum()
+        namestem = Path(filename).stem
+
+        if matches == 0 and ext == ".png":
+            try:
+                nameparts = filename.split("_C")
+                if len(nameparts) < 2:
+                    return (
+                        False,
+                        "",
+                        f"Filename {filename} must use the sequence _C to separate channel data",
+                    )
+                namestem = "_C".join(nameparts[:-1])
+                namestem_reg = re.escape(namestem)
+                nr = namestem_reg + NAMEREG
+                matches = df["File"].str.contains(nr).sum()
+                end_check = check_png_name_ending(filename, nameparts)
+                if not end_check[0]:
+                    return (False, "", end_check[1])
+            except Exception as err:
+                return (False, "", f"{err}")
+    except Exception as err:
+        return (False, "", f"{err}")
+
+    if matches != 1:
+        return (
+            False,
+            "",
+            f"Filename {filename} must match exactly one filename in metadata",
+        )
+    else:
+        return True, namestem, ""
+
+
+def get_image_info(
+    filename: str, df: pd.DataFrame
+) -> tuple[int, str, pd.DataFrame, int, str]:
+    """
+    Validates the provided image, and if valid, gets information associated with the image.
+
+    Returns (name validity, filename stem, df filtered to the relevant row, image channel, error message)
+    """
+    valid_name = check_image_name(filename, df)
+    if not valid_name[0]:
+        return (False, "", pd.DataFrame({}), None, valid_name[1])
+
+    channel = None
+    new_df = pd.DataFrame({})
+
+    matches = df["File"].eq(filename).sum()
+    # get info if file has an exact match in metadata
+    if matches == 1:
+        filename_reg = re.escape(filename)
+        new_df = df[df["File"].str.fullmatch(filename_reg)]
+    else:
+        # file validity has already been checked, so this must be a display image based on a file in metadata
+        nameparts = filename.split("_C")
+        namestem_reg = re.escape(valid_name[1])
+        nr = namestem_reg + NAMEREG
+        new_df = df[df["File"].str.contains(nr)]
+        try:
+            channel = int(nameparts[-1][0])
+        except ValueError:
+            return (
+                False,
+                "",
+                pd.DataFrame({}),
+                None,
+                "You must specify the channel for this image using the sequence _C as a separator",
+            )
+    return (valid_name[0], valid_name[1], new_df, channel, "")
 
 
 def process_sci_image(file: bytes, filename: str) -> tuple[bool, str, str]:
@@ -381,17 +391,9 @@ def process_sci_image(file: bytes, filename: str) -> tuple[bool, str, str]:
     df = pd.read_csv(FD["si-block"]["si-files"]["publish"])
     if df.empty:
         return False, "You must upload image metadata before uploading images"
-    ext = Path(filename).suffix
-    # if not a PNG, search for the name exactly
-    name_info = check_image_name(filename, df)
-    if name_info[0] == 0:
-        return False, name_info[4]
-    # if PNG, check naming scheme
-    if ext == ".png":
-        nums_check = check_png_name_ending(filename)
-        if not nums_check[0]:
-            return nums_check
-    # check if destination path exists
+    name_matches = check_image_name(filename, df)
+    if not name_matches[0]:
+        return False, name_matches[2]
     dest = Path(FD["sci-images"]["depot"])
     if not Path.exists(dest):
         Path.mkdir(dest, parents=True)
@@ -655,8 +657,8 @@ def publish_sci_images() -> tuple[str, str, str]:
         # check if a file or dir
         if child.is_file():
             # if file, look up info about destination dir structure
-            match_info = check_image_name(child.name, df)
-            if match_info[0] == 0:
+            match_info = get_image_info(child.name, df)
+            if not match_info[0]:
                 return ("Image not published", match_info[4], "failure")
             row = match_info[2]
             if row.empty:
