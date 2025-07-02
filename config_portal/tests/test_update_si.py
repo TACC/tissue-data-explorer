@@ -55,7 +55,6 @@ def test_process_sci_image():
     str2 = make_upload_content("/app/examples/images-example.xlsx")
     b2 = decode_str(str2)
 
-    print(validate.process_sci_image(b1, "S1-1-1_C00000.png"))
     assert validate.process_sci_image(b1, "S1-1-1_C00000.png")[0] is True
     assert validate.process_sci_image(b2, "images-example.xlsx")[0] is False
 

@@ -283,7 +283,7 @@ def check_png_name_ending(filename: str, nameparts: list) -> tuple[bool, str]:
     numreg = r"\d{5}\.png"
     nr = re.compile(numreg)
     m = nr.fullmatch(nameparts[-1])
-    if m:
+    if m is not None:
         return True, ""
     else:
         return (
@@ -351,7 +351,6 @@ def get_image_info(
     if not valid_name[0]:
         return (False, "", pd.DataFrame({}), None, valid_name[1])
 
-    channel = None
     new_df = pd.DataFrame({})
 
     matches = df["File"].eq(filename).sum()
@@ -361,21 +360,10 @@ def get_image_info(
         new_df = df[df["File"].str.fullmatch(filename_reg)]
     else:
         # file validity has already been checked, so this must be a display image based on a file in metadata
-        nameparts = filename.split("_C")
         namestem_reg = re.escape(valid_name[1])
         nr = namestem_reg + NAMEREG
         new_df = df[df["File"].str.contains(nr)]
-        try:
-            channel = int(nameparts[-1][0])
-        except ValueError:
-            return (
-                False,
-                "",
-                pd.DataFrame({}),
-                None,
-                "You must specify the channel for this image using the sequence _C as a separator",
-            )
-    return (valid_name[0], valid_name[1], new_df, channel, "")
+    return (valid_name[0], valid_name[1], new_df, "")
 
 
 def process_sci_image(file: bytes, filename: str) -> tuple[bool, str, str]:
@@ -480,77 +468,66 @@ def make_thumbnail(imgs):
     return im
 
 
-def generate_thumbnails(idx, tdf):
-    # get image metadata
-    mdf = pd.read_csv(FD["si-block"]["si-files"]["publish"])
-    rd = {"Block": [], "Preview": [], "Name": [], "Link": []}
-    new_tr = pd.DataFrame(data=rd, dtype="string")
+def save_thumbnail(img, thumbnail_folder, thumbnail_loc):
+    if not Path.exists(thumbnail_folder):
+        Path.mkdir(thumbnail_folder, parents=True)
+    ImageOps.cover(img, FINAL_THUMBNAIL_SIZE).save(
+        thumbnail_loc,
+        optimize=True,
+    )
 
-    # get list of unique image sets from the thumbnail dataframe
-    parents = tdf["parent"].unique()
-    for i in range(parents.size):
-        # check how many channels are in the thumbnail dataframe for this parent, and if it matches metadata
-        igroup = tdf[tdf["parent"] == parents[i]]  # one row per channel
-        igroup = igroup[igroup["filename"].str.endswith(".png")]  # skip non-PNG files
-        # if no new PNG files, stop
-        if igroup.empty:
-            return
-        nr = re.escape(parents[i]) + NAMEREG
-        new_df = mdf[mdf["File"].str.contains(nr)]  # parent row in metadata
-        # how many channels should be in thumbnail
-        channels = new_df["Channels"].values[0]
-        imgs = []  # images to include in thumbnail
-        # compare number of rows in igroup to channels record in mdf
-        if igroup.shape[0] < channels:
-            # figure out which channel is missing
-            actual_channels = igroup["channel"].values
-            missing_channels = []
-            for k in range(channels):
-                if str(k) not in actual_channels:
-                    missing_channels.append(k)
-            # attempt to find images for any missing channels
-            for m in missing_channels:
-                p = Path(igroup["destination"].values[0])
-                pdir = p.parent
-                for file in pdir.iterdir():
-                    if file.is_file() and file.suffix == ".png":
-                        nameparts = file.name.split("_C")
-                        if int(nameparts[-1][0]) == m:
-                            # add to imgs and go to next loop iteration
-                            imgs.append(Image.open(file))
-                            break
-            # add images for present channels
-            for q in range(igroup.shape[0]):
-                imgs.append(Image.open(igroup["destination"].values[q]))
-        else:
-            for j in range(channels):
-                imgs.append(Image.open(igroup["destination"].values[j]))
-        im = make_thumbnail(imgs)
-        set_name = new_df["Image Set"].values[0]
-        dest = Path(f"{FD['sci-images']['publish']}/thumbnails/{set_name}")
+
+def generate_thumbnails(tdf: pd.DataFrame):
+    """
+    Generate thumbnails for images that have been updated.
+    """
+
+    # tdf = {"name": [], "namestem": [], "block": [], "imageset": [], "destination": []}
+    new_thumbnails = {"Block": [], "Preview": [], "Name": [], "Link": []}
+
+    for i in range(tdf["name"].size):
+        # go to the publish folder for that namestem, which is stored in "destination"
+        dest = tdf["destination"].iat[i]
+        name = tdf["name"].iat[i]
+        block = tdf["block"].iat[i]
+        img_set = tdf["imageset"].iat[i]
+        namestem = tdf["namestem"].iat[i]
+
+        p = Path(dest)
+        display_imgs = []
+        channels = []
+
+        # collect the images with PNG naming scheme
+        for file in p.iterdir():
+            if file.is_file() and file.suffix == ".png":
+                nameparts = file.name.split("_C")
+                is_display_img = check_png_name_ending(file.name, nameparts)
+                if is_display_img[0]:
+                    # check if this channel is already represented in the list
+                    if nameparts[-1][0] not in channels:
+                        # add it to list if not
+                        channels.append(nameparts[-1][0])
+                        display_imgs.append(Image.open(file))
+        # generate thumbnail using display images
+        im = make_thumbnail(display_imgs)
+        thumbnail_folder = Path(f"{FD['thumbnails']['publish']}/{img_set}")
         thumbnail_loc = (
-            f"{FD['thumbnails']['publish']}/{set_name}/{parents[i]}_thumbnail.png"
+            f"{FD['thumbnails']['publish']}/{img_set}/{namestem}_thumbnail.png"
         )
-        if not Path.exists(dest):
-            Path.mkdir(dest, parents=True)
-        ImageOps.cover(im, FINAL_THUMBNAIL_SIZE).save(
-            thumbnail_loc,
-            optimize=True,
-        )
-        # add new row to thumbnail records
-        display_shared_vol_root = "assets"
-        # {"Block": [], "Preview": [], "Name": [], "Link": []}
-        new_tr.loc[i] = [
-            new_df["Tissue Block"].values[0],
-            f"../../{display_shared_vol_root}{thumbnail_loc}",
-            new_df["File"].values[0],
-            f"/scientific-images/{new_df['Tissue Block'].values[0]}/{set_name}",
-        ]
-    # update the thumbnails record so that the display app can access the new thumbnails
-    update_thumbnails_record(new_tr)
+        save_thumbnail(im, thumbnail_folder, thumbnail_loc)
+        # add the new thumbnail's info to list of thumbnail entries to update
+        new_thumbnails["Block"].append(block)
+        new_thumbnails["Preview"].append(f"../../assets{thumbnail_loc}")
+        new_thumbnails["Name"].append(name)
+        new_thumbnails["Link"].append(f"/scientific-images/{block}/{img_set}")
+    nt_df = pd.DataFrame(data=new_thumbnails, dtype="string")
+    update_thumbnails_record(nt_df)
 
 
-def update_thumbnails_record(new_tr):
+def update_thumbnails_record(new_tr: pd.DataFrame):
+    """
+    Update the catalog of thumbnails so that the display app can display them.
+    """
     # new_tr: {"Block": [], "Preview": [], "Name": [], "Link": []}
     # try to open thumbnails workbook
     try:
@@ -564,50 +541,17 @@ def update_thumbnails_record(new_tr):
         return
     df_idx = df.shape[0]
     for i in range(new_tr.shape[0]):
-        # look up row in existing df by "Name"
-        filename = new_tr.loc[i, "Name"]
-        new_df = df[df["Name"].str.contains(filename)]
-        # if not found, add new row
+        # find duplicates by link and use the new info if duplicated
+        filename = new_tr.loc[i, "Link"]
+        new_df = df[df["Link"].str.contains(filename)]
+        # if not found, add new row to the end of the dataframe
         if new_df.empty:
             df.loc[df_idx] = new_tr.loc[i]
     # drop duplicate records
-    df.drop_duplicates(subset=["Name"], inplace=True)
+    df.drop_duplicates(subset=["Link"], inplace=True, keep="last")
+    df.sort_values(by=["Link"], axis=0, ascending=True, inplace=True, ignore_index=True)
     # once all rows are processed, save updated data
     df.to_csv(FD["thumbnails"]["catalog"], index=False)
-
-
-def update_new_thumbnails_list(
-    tdf: pd.DataFrame,
-    tdi: int,
-    filename: str,
-    filestem: str,
-    channels: str,
-    dest_dir: str,
-) -> tuple[pd.DataFrame, int]:
-    """
-    Checks whether the provided image needs to be added to the list of thumbnail updates.
-
-    Returns the updated dataframe of updates and updated index.
-    """
-    # pick one img per channel per set for thumbnail
-    # check if there is already a row in tdf for the parent & channel of this image
-    tdf_needs_new = False
-    if tdf["parent"].str.contains(filestem).empty:
-        tdf_needs_new = True
-    else:
-        parent_rows = tdf.loc[(tdf["parent"].str.contains(filestem))]
-        if not parent_rows["channel"].str.contains(channels).any():
-            tdf_needs_new = True
-    if tdf_needs_new:
-        dest_loc = f"{dest_dir}/{filename}"
-        tdf.loc[tdi] = [
-            filename,
-            filestem,
-            channels,
-            dest_loc,
-        ]
-        tdi += 1
-    return tdf, tdi
 
 
 def move_sci_images(src_path: Path, dest_dir: str, filename: str) -> None:
@@ -648,9 +592,7 @@ def publish_sci_images() -> tuple[str, str, str]:
     files = os.listdir(p)
 
     # start dictionary that will make thumbnails df
-    td = {"filename": [], "parent": [], "channel": [], "destination": []}
-    tdf = pd.DataFrame(data=td, dtype="string")
-    tdi = 0
+    td = {"name": [], "namestem": [], "block": [], "imageset": [], "destination": []}
     # iterate over images in depot
     for file in files:
         child = Path(f"{FD['sci-images']['depot']}/{file}")
@@ -667,22 +609,24 @@ def publish_sci_images() -> tuple[str, str, str]:
                     "All images must be present in the image metadata.",
                     "failure",
                 )
+            dest_dir = f"{FD['sci-images']['publish']}/{row['Tissue Block'].values[0]}/{match_info[1]}"
+            # check if namestem in td
+            if match_info[1] not in td["namestem"]:
+                # if not, fill out a new row in td
+                td["name"].append(row["File"].values[0])
+                td["namestem"].append(match_info[1])
+                td["block"].append(row["Tissue Block"].values[0])
+                td["imageset"].append(row["Image Set"].values[0])
+                td["destination"].append(dest_dir)
+            # try to move the image
             try:
-                dest_dir = f"{FD['sci-images']['publish']}/{row['Tissue Block'].values[0]}/{match_info[1]}"
-                tdf, tdi = update_new_thumbnails_list(
-                    tdf,
-                    tdi,
-                    child.name,
-                    match_info[1],
-                    str(match_info[3]),
-                    dest_dir,
-                )
                 move_sci_images(child, dest_dir, child.name)
             except Exception as err:
                 app_logger.debug(traceback.print_exc())
                 return ("Image not published", f"{err}", "failure")
+    tdf = pd.DataFrame(data=td, dtype="string")
     # create thumbnails
-    generate_thumbnails(tdi, tdf)
+    generate_thumbnails(tdf)
     return ("Images published", "Images transferred successfully", "success")
 
 
