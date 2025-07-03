@@ -77,8 +77,8 @@ def test_update_df_entries():
     updated_df2 = validate.update_df_entries(old_entries, new_entries_overlap, "File")
     expected_df2 = pd.DataFrame(
         data={
-            "File": ["1_2_3.obj", "a-b-c.obj", "1 2 3.obj"],
-            "Name": ["S1-6", "S1-4", "S1-7"],
+            "File": ["a-b-c.obj", "1_2_3.obj", "1 2 3.obj"],
+            "Name": ["S1-4", "S1-6", "S1-7"],
         }
     )
     assert updated_df2.equals(expected_df2)

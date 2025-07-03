@@ -37,13 +37,15 @@ def read_obj(file):
 
 
 def make_mesh_settings(
-    vertices,
-    faces,
-    name,
-    color="cyan",
-    opacity=1,
+    vertices, faces, name, color="cyan", opacity=1, x_map="x", y_map="y", z_map="z"
 ):
-    x, y, z = vertices.T
+    coord_pos = {"x": 0, "y": 1, "z": 2}
+
+    # with default settings, vertices.T has x, y, z in that order
+    x = vertices.T[coord_pos[x_map]]
+    y = vertices.T[coord_pos[y_map]]
+    z = vertices.T[coord_pos[z_map]]
+
     L, M, N = faces.T
 
     mesh = {
@@ -74,9 +76,18 @@ def make_mesh_settings(
     return [mesh]
 
 
-def make_mesh_data(name, file, color=None, opacity=1):
+def make_mesh_data(name, file, color=None, opacity=1, x_map="x", y_map="y", z_map="z"):
     vertices, faces = read_obj(file)
-    data = make_mesh_settings(vertices, faces, name, color=color, opacity=opacity)
+    data = make_mesh_settings(
+        vertices,
+        faces,
+        name,
+        color=color,
+        opacity=opacity,
+        x_map=x_map,
+        y_map=y_map,
+        z_map=z_map,
+    )
     data[0]["name"] = name
     return data
 
@@ -95,6 +106,9 @@ def make_mesh_fig(organ=1):
                     file_loc,
                     organ_traces.at[i, "Color"],
                     organ_traces.at[i, "Opacity"],
+                    organ_traces.at[i, "x axis"],
+                    organ_traces.at[i, "y axis"],
+                    organ_traces.at[i, "z axis"],
                 )
                 fig = go.Figure(data1)
                 name = data1[0]["name"]
@@ -106,6 +120,9 @@ def make_mesh_fig(organ=1):
                     file_loc,
                     organ_traces.at[i, "Color"],
                     organ_traces.at[i, "Opacity"],
+                    organ_traces.at[i, "x axis"],
+                    organ_traces.at[i, "y axis"],
+                    organ_traces.at[i, "z axis"],
                 )
                 fig.add_trace(go.Mesh3d(data[0]))
                 name = data[0]["name"]
@@ -115,6 +132,7 @@ def make_mesh_fig(organ=1):
             continue
     try:
         fig.update_layout(
+            scene_aspectmode="data",
             height=500,
             scene=dict(
                 xaxis=dict(visible=False),

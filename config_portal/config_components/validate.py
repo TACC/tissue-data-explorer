@@ -12,7 +12,6 @@ from PIL import Image, ImageDraw, ImageOps
 import logging
 import base64
 from collections.abc import Callable
-import numpy as np
 
 from pages import constants
 
@@ -133,7 +132,18 @@ REQUIRED_HEADERS = {
         ],
     },
     "downloads": {"downloads": ["Name", "Label", "Desc", "Block"]},
-    "obj-files": {"files": ["Organ", "Name", "File", "Color", "Opacity"]},
+    "obj-files": {
+        "files": [
+            "Organ",
+            "Name",
+            "File",
+            "Color",
+            "Opacity",
+            "x axis",
+            "y axis",
+            "z axis",
+        ]
+    },
     "reports": {"reports": ["Name", "Link"]},
 }
 
@@ -229,6 +239,7 @@ def check_excel_headers(file: bytes, which_headers: str) -> tuple[bool, str, dic
     Returns (success, error message, dict of DataFrames if successful)
     """
     dfs = {}
+
     for key in REQUIRED_HEADERS[which_headers].keys():
         dfr = open_excel_from_bytes(file, worksheet=key)
         if dfr[0]:
@@ -701,29 +712,15 @@ def update_df_entries(
     old_list: pd.DataFrame, new_entries: pd.DataFrame, key_column: str
 ):
     # TODO: add ability to delete entries (list entries and files)
-    ol = old_list.copy()
     valid_names = validate_filename_col(new_entries[key_column])
     if not valid_names[0]:
         return False, valid_names[1], ""
-    # drop duplicate names in existing data
-    ol.drop_duplicates(subset=[key_column], inplace=True)
-    ol.index = range(len(ol))
-    new_rows = new_entries.shape[0]
-    existing_rows = ol.shape[0]
-    to_drop = []
-    # add rows to downloads.csv
-    for i in range(new_rows):
-        # find names existing records that match names in new record
-        if ol[key_column].eq(new_entries[key_column].loc[i]).any():
-            matches = np.flatnonzero(ol[key_column].eq(new_entries[key_column].loc[i]))
-            to_drop.extend(matches[1:])
-            ol.iloc[matches[0]] = new_entries.iloc[i]
-        else:
-            ol.loc[existing_rows + i] = new_entries.iloc[i]
-    # drop rows that were duplicated by entries in new upload
-    ol.drop(to_drop, inplace=True)
-    ol.index = range(len(ol))
-    return ol
+
+    new_df = pd.concat([old_list, new_entries], ignore_index=True)
+    new_df.drop_duplicates(
+        subset=[key_column], keep="last", ignore_index=True, inplace=True
+    )
+    return new_df
 
 
 def update_entries(

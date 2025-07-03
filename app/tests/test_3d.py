@@ -3,6 +3,7 @@ import dash_bootstrap_components as dbc
 import plotly
 import pytest
 from dash import dcc, html
+import numpy as np
 import os
 import sys
 
@@ -55,8 +56,19 @@ def test_make_mesh_settings():
         opacity=0.5,
     )
 
+    y_values = np.array([-10, -10, 0, 0, -10, -10, 0, 0])
+    z_values = np.array([-10, -5, -10, -5, -10, -5, -10, -5])
+
     assert settings2[0]["color"] == "#ED780B"
     assert settings2[0]["opacity"] == 0.5
+    assert np.array_equal(settings2[0]["y"], y_values) is True
+    assert np.array_equal(settings2[0]["z"], z_values) is True
+
+    settings3 = make_mesh_settings(
+        vertices, faces, "S1-4", x_map="x", y_map="z", z_map="y"
+    )
+    assert np.array_equal(settings3[0]["y"], z_values) is True
+    assert np.array_equal(settings3[0]["z"], y_values) is True
 
 
 def test_make_mesh_data():
