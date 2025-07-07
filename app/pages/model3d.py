@@ -291,7 +291,7 @@ def display_click_data(click_data):
     ]
     if click_data:
         input_id = callback_context.triggered[0]["prop_id"].split(".")[0]
-        idx = json.loads(input_id)["index"]
+        idx = int(json.loads(input_id)["index"])
         row = blocks.loc[
             blocks["Tissue Block"]
             == organ_traces[idx].loc[click_data["points"][0]["curveNumber"], "Name"]
