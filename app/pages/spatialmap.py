@@ -180,7 +180,7 @@ def save_point_opacity(value):
 
 @callback(
     Output("extra-volumetric-map-filters", "children"),
-    Input("tabs", "active_tab"),
+    Input("volumetric-tabs", "active_tab"),
     State("category-selected", "data"),
     State("category-store", "data"),
     State("point-opacity-store-sm", "data"),
@@ -207,7 +207,7 @@ def update_controls(at, category_selected, category_data, point_opacity, cube_op
 
 @callback(
     Output("volumetric-map-graph", "figure"),
-    Input("tabs", "active_tab"),
+    Input("volumetric-tabs", "active_tab"),
     Input("color-store-sm", "data"),
     Input("value-store", "data"),
     Input("cube-opacity-store-sm", "data"),
