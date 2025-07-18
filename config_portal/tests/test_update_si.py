@@ -1,5 +1,7 @@
 import os
 import sys
+import shutil
+from pathlib import Path
 import pandas as pd
 import json
 import plotly
@@ -11,7 +13,7 @@ import app
 from config_components import validate
 from pages import home
 from pages.constants import FILE_DESTINATION as FD
-from helpers import make_upload_content, decode_str
+from helpers import make_upload_content, decode_str, clean_dir
 
 
 def test_check_image_name():
@@ -58,6 +60,10 @@ def test_process_sci_image():
     assert validate.process_sci_image(b1, "S1-1-1_C00000.png")[0] is True
     assert validate.process_sci_image(b2, "images-example.xlsx")[0] is False
 
+    # clean up depot directory
+    cleanup_status = clean_dir(FD["sci-images"]["depot"])
+    assert cleanup_status[0] is True
+
 
 def test_upload_sci_images():
     str1 = make_upload_content(
@@ -82,3 +88,29 @@ def test_upload_sci_images():
         )
     )
     assert result2[0]["props"]["header_class_name"] == "text-danger"
+
+    # clean up depot directory
+    cleanup_status = clean_dir(FD["sci-images"]["depot"])
+    assert cleanup_status[0] is True
+
+
+def test_move_sci_image():
+    # put a file in the depot
+    demo_src = Path(f"{FD["sci-images"]["publish"]}/S1-14/S1-14-1/S1-14-1.tif")
+    demo_dest = Path(FD["sci-images"]["depot"])
+    shutil.move(demo_src, demo_dest)
+
+    # test that the file is moved successfully
+    test_src = Path(f"{FD["sci-images"]["depot"]}/S1-14-1.tif")
+    test_dest = Path(f"{FD["sci-images"]["publish"]}/S1-14/S1-14-1")
+    files = test_dest.iterdir()
+    num_files = len([file for file in files if file.is_file()])
+    assert num_files == 1
+
+    validate.move_sci_image(test_src, test_dest, "S1-14-1.tif")
+    files = test_dest.iterdir()
+    num_files = len([file for file in files if file.is_file()])
+    assert num_files == 2
+
+    files = [file for file in demo_dest.iterdir() if file.is_file()]
+    assert f"{FD["sci-images"]["depot"]}/S1-14-1.tif" not in files

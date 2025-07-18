@@ -267,7 +267,16 @@ def layout(**kwargs):
             ),
             dbc.CardBody(
                 [
-                    html.Div(make_graph_layout(organ_desc, 0), id="model-fig"),
+                    dcc.Loading(
+                        html.Div(make_graph_layout(organ_desc, 0), id="model-fig"),
+                        style={
+                            "visibility": "visible",
+                            "backgroundColor": "transparent",
+                            "opacity": 0.7,
+                        },
+                        type="dot",
+                        parent_className="loader-wrapper",
+                    ),
                 ]
             ),
         ]

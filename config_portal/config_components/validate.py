@@ -12,7 +12,6 @@ from PIL import Image, ImageDraw, ImageOps
 import logging
 import base64
 from collections.abc import Callable
-
 from pages import constants
 
 MAX_TITLE_LENGTH = 2048
@@ -356,7 +355,7 @@ def get_image_info(
     """
     Validates the provided image, and if valid, gets information associated with the image.
 
-    Returns (name validity, filename stem, df filtered to the relevant row, image channel, error message)
+    Returns (name validity, filename stem, df filtered to the relevant row, error message)
     """
     valid_name = check_image_name(filename, df)
     if not valid_name[0]:
@@ -436,15 +435,56 @@ def update_title(value: str) -> tuple[str, str, str]:
         return ("Title not updated", "Please provide a name.", "failure")
 
 
+def query_thumbnails_for_changed_filenames(
+    blocks_df: pd.DataFrame, tn_df: pd.DataFrame
+) -> pd.Series:
+    """
+    Returns a list of filenames
+    """
+    # make a df shaped like thumbnails df based on blocks df
+    new_td_df = pd.DataFrame(data={})
+    new_td_df["Block"] = blocks_df["Tissue Block"]
+    new_td_df["Name"] = blocks_df["File"]
+    new_td_df["Preview"] = ""
+    new_td_df["Link"] = (
+        f"/scientific-images/{blocks_df["Tissue Block"]}/{blocks_df["Image Set"]}"
+    )
+
+    # combine old and new dfs
+    combined_df = pd.concat([new_td_df, tn_df], ignore_index=True)
+
+    # Filter down to just files that were in the blocks df
+    just_new = combined_df.loc[combined_df["Name"].isin(blocks_df["File"])]
+
+    # drop rows that have not changed in the relevant columns
+    changed_entries = just_new.drop_duplicates(
+        keep=False, inplace=False, ignore_index=True, subset=["Block", "Name", "Link"]
+    )
+
+    return changed_entries["Name"]
+
+
 def publish_si_block() -> tuple[str, str, str]:
-    """Publish scientific images metadata.
+    """Publish scientific images metadata. Triggers re-generation of thumbnails if the image definition has changed.
+
     Returns (title of update toast, description of update, success status)"""
     try:
+        new_si_df = pd.read_csv(FD["si-block"]["si-files"]["depot"])
+        old_tn_df = pd.read_csv(FD["thumbnails"]["catalog"])
+
+        # find out which entries in the new blocks file will need to be updated in the thumbnails catalog
+        changed_entries = query_thumbnails_for_changed_filenames(new_si_df, old_tn_df)
+        files = list(changed_entries)
+
+        generate_thumbnails(files, new_si_df, False)
+
+        # put new scientific images metadata in publish location
         for key in FD["si-block"].keys():
             p = Path(FD["si-block"][key]["depot"])
             t = Path(FD["si-block"][key]["publish"])
             if p.exists():
                 shutil.move(p, t)
+
     except FileNotFoundError:
         return ("Metadata not updated", "File not found", "failure")
     return (
@@ -488,51 +528,116 @@ def save_thumbnail(img, thumbnail_folder, thumbnail_loc):
     )
 
 
-def generate_thumbnails(tdf: pd.DataFrame):
+def generate_thumbnail(
+    dest: str, img_set: str, thumbnail_loc: str
+) -> tuple[bool, bool, str]:
     """
-    Generate thumbnails for images that have been updated.
+    Generate a thumbnail for a scientific image and save the image.
+
+    Returns (success, error message)
     """
-
-    # tdf = {"name": [], "namestem": [], "block": [], "imageset": [], "destination": []}
-    new_thumbnails = {"Block": [], "Preview": [], "Name": [], "Link": []}
-
-    for i in range(tdf["name"].size):
-        # go to the publish folder for that namestem, which is stored in "destination"
-        dest = tdf["destination"].iat[i]
-        name = tdf["name"].iat[i]
-        block = tdf["block"].iat[i]
-        img_set = tdf["imageset"].iat[i]
-        namestem = tdf["namestem"].iat[i]
-
+    try:
         p = Path(dest)
         display_imgs = []
         channels = []
 
         # collect the images with PNG naming scheme
-        for file in p.iterdir():
-            if file.is_file() and file.suffix == ".png":
-                nameparts = file.name.split("_C")
-                is_display_img = check_png_name_ending(file.name, nameparts)
-                if is_display_img[0]:
-                    # check if this channel is already represented in the list
-                    if nameparts[-1][0] not in channels:
-                        # add it to list if not
-                        channels.append(nameparts[-1][0])
-                        display_imgs.append(Image.open(file))
-        # generate thumbnail using display images
-        im = make_thumbnail(display_imgs)
+        if Path.exists(p):
+            for file in p.iterdir():
+                if file.is_file() and file.suffix == ".png":
+                    nameparts = file.name.split("_C")
+                    is_display_img = check_png_name_ending(file.name, nameparts)
+                    if is_display_img[0]:
+                        # check if this channel is already represented in the list
+                        if nameparts[-1][0] not in channels:
+                            # add it to list if not
+                            channels.append(nameparts[-1][0])
+                            display_imgs.append(Image.open(file))
+
+        # Delete old thumbnail if exists. This is necessary because the image set could be changed to point to a different image.
         thumbnail_folder = Path(f"{FD['thumbnails']['publish']}/{img_set}")
-        thumbnail_loc = (
-            f"{FD['thumbnails']['publish']}/{img_set}/{namestem}_thumbnail.png"
-        )
-        save_thumbnail(im, thumbnail_folder, thumbnail_loc)
-        # add the new thumbnail's info to list of thumbnail entries to update
-        new_thumbnails["Block"].append(block)
-        new_thumbnails["Preview"].append(f"../../assets{thumbnail_loc}")
-        new_thumbnails["Name"].append(name)
-        new_thumbnails["Link"].append(f"/scientific-images/{block}/{img_set}")
-    nt_df = pd.DataFrame(data=new_thumbnails, dtype="string")
-    update_thumbnails_record(nt_df)
+
+        if Path.exists(thumbnail_folder):
+            shutil.rmtree(thumbnail_folder)
+
+        # If there is no PNG to base thumbnail on, skip making thumbnail and thumbnail catalog entry. The thumbnail catalog entry is
+        # skipped because if there are no PNGs, then there is nothing to show in the viewer, so little point in linking users to that page.
+        if len(display_imgs) > 0:
+            # generate thumbnail using display images
+            im = make_thumbnail(display_imgs)
+
+            # Save new thumbnail
+            save_thumbnail(im, thumbnail_folder, thumbnail_loc)
+        return (True, "success")
+    except Exception as err:
+        return (False, f"{err}")
+
+
+def generate_thumbnails(
+    files: list, df: pd.DataFrame, publish_imgs: bool
+) -> tuple[str, str, str]:
+    """
+    For a given list of files, generates a thumbnail for each file and updates the thumbnails catalog accordingly.
+
+    Returns (Result summary, result message, result status)
+    """
+    # Track list of thumbnails that have been processed
+    processed_thumbnails = []
+
+    # This will form a df that will be used to update the thumbnails catalog
+    new_td = {"Block": [], "Preview": [], "Name": [], "Link": []}
+
+    for file in files:
+        # look up info about destination dir structure
+        match_info = get_image_info(file, df)
+
+        if not match_info[0]:
+            return ("Image not published", match_info[4], "failure")
+
+        row = match_info[2]
+        if row.empty:
+            return (
+                "Image not published",
+                "All images must be present in the image metadata.",
+                "failure",
+            )
+        filename = row["File"].values[0]
+        block = row["Tissue Block"].values[0]
+        img_set = row["Image Set"].values[0]
+        dest_dir = f"{FD['sci-images']['publish']}/{block}/{match_info[1]}"
+        child = Path(f"{FD['sci-images']['depot']}/{file}")
+        if publish_imgs and child.is_file():
+            # try to move the image
+            try:
+                move_sci_image(child, dest_dir, file)
+            except Exception as err:
+                app_logger.debug(traceback.print_exc())
+                return ("Image not published", f"{err}", "failure")
+        # check if a thumbnail has been generated for this image
+        if match_info[1] not in processed_thumbnails:
+            thumbnail_loc = (
+                f"{FD['thumbnails']['publish']}/{img_set}/{match_info[1]}_thumbnail.png"
+            )
+            gen_success = generate_thumbnail(
+                dest_dir, row["Image Set"].values[0], thumbnail_loc
+            )
+            if not gen_success[0]:
+                return ("Image not published", gen_success[2], "failure")
+
+            # add the new thumbnail's info to list of thumbnail entries to update
+            link = f"/scientific-images/{block}/{img_set}"
+            new_td["Block"].append(block)
+            new_td["Preview"].append(f"../../assets{thumbnail_loc}")
+            new_td["Name"].append(filename)
+            new_td["Link"].append(link)
+
+            # mark this thumbnail as processed
+            processed_thumbnails.append(match_info[1])
+
+    # update thumbnail catalog
+    new_tr = pd.DataFrame(data=new_td)
+    update_thumbnails_record(new_tr)
+    return ("Images published", "Images transferred successfully", "success")
 
 
 def update_thumbnails_record(new_tr: pd.DataFrame):
@@ -550,22 +655,15 @@ def update_thumbnails_record(new_tr: pd.DataFrame):
             Path.mkdir(dest, parents=True)
         new_tr.to_csv(FD["thumbnails"]["catalog"], index=False)
         return
-    df_idx = df.shape[0]
-    for i in range(new_tr.shape[0]):
-        # find duplicates by link and use the new info if duplicated
-        filename = new_tr.loc[i, "Link"]
-        new_df = df[df["Link"].str.contains(filename)]
-        # if not found, add new row to the end of the dataframe
-        if new_df.empty:
-            df.loc[df_idx] = new_tr.loc[i]
-    # drop duplicate records
-    df.drop_duplicates(subset=["Link"], inplace=True, keep="last")
+
+    df = update_df_entries(df, new_tr, "Link")
     df.sort_values(by=["Link"], axis=0, ascending=True, inplace=True, ignore_index=True)
+
     # once all rows are processed, save updated data
     df.to_csv(FD["thumbnails"]["catalog"], index=False)
 
 
-def move_sci_images(src_path: Path, dest_dir: str, filename: str) -> None:
+def move_sci_image(src_path: Path, dest_dir: str, filename: str) -> None:
     """Moves a file to a new location after ensuring the new location exists."""
     try:
         dest = Path(dest_dir)
@@ -602,43 +700,7 @@ def publish_sci_images() -> tuple[str, str, str]:
     # get images in depot
     files = os.listdir(p)
 
-    # start dictionary that will make thumbnails df
-    td = {"name": [], "namestem": [], "block": [], "imageset": [], "destination": []}
-    # iterate over images in depot
-    for file in files:
-        child = Path(f"{FD['sci-images']['depot']}/{file}")
-        # check if a file or dir
-        if child.is_file():
-            # if file, look up info about destination dir structure
-            match_info = get_image_info(child.name, df)
-            if not match_info[0]:
-                return ("Image not published", match_info[4], "failure")
-            row = match_info[2]
-            if row.empty:
-                return (
-                    "Image not published",
-                    "All images must be present in the image metadata.",
-                    "failure",
-                )
-            dest_dir = f"{FD['sci-images']['publish']}/{row['Tissue Block'].values[0]}/{match_info[1]}"
-            # check if namestem in td
-            if match_info[1] not in td["namestem"]:
-                # if not, fill out a new row in td
-                td["name"].append(row["File"].values[0])
-                td["namestem"].append(match_info[1])
-                td["block"].append(row["Tissue Block"].values[0])
-                td["imageset"].append(row["Image Set"].values[0])
-                td["destination"].append(dest_dir)
-            # try to move the image
-            try:
-                move_sci_images(child, dest_dir, child.name)
-            except Exception as err:
-                app_logger.debug(traceback.print_exc())
-                return ("Image not published", f"{err}", "failure")
-    tdf = pd.DataFrame(data=td, dtype="string")
-    # create thumbnails
-    generate_thumbnails(tdf)
-    return ("Images published", "Images transferred successfully", "success")
+    return generate_thumbnails(files, df, True)
 
 
 def process_content(
@@ -711,11 +773,6 @@ def write_excel(dfs: dict, filename: str, loc: str) -> tuple[bool, str]:
 def update_df_entries(
     old_list: pd.DataFrame, new_entries: pd.DataFrame, key_column: str
 ):
-    # TODO: add ability to delete entries (list entries and files)
-    valid_names = validate_filename_col(new_entries[key_column])
-    if not valid_names[0]:
-        return False, valid_names[1], ""
-
     new_df = pd.concat([old_list, new_entries], ignore_index=True)
     new_df.drop_duplicates(
         subset=[key_column], keep="last", ignore_index=True, inplace=True
@@ -739,6 +796,9 @@ def update_entries(
         # drop duplicate names
         df.drop_duplicates(subset=[key_column], inplace=True)
     if not new:
+        valid_names = validate_filename_col(new_entries[key_column])
+        if not valid_names[0]:
+            return False, valid_names[1], ""
         df = update_df_entries(df, new_entries, key_column)
     return df
 
