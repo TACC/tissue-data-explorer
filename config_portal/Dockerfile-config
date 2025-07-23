@@ -20,6 +20,8 @@ COPY ./config_portal/pages \
      ./pages
 COPY ./components \
      ./components
+     COPY ./config_portal/examples \
+     ./examples
 COPY ./styles \
      ./assets/styles
 

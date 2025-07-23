@@ -24,7 +24,20 @@ C_SCHEMES = [
 ]
 
 
-# Layout functions
+# generic layout functions
+def make_tabs(id: str, active: str, tabs: list) -> object:
+    """
+    "tabs" is a list of tuples, with each tuple containing the tab label and id
+    """
+    tab_objs = []
+    for i in range(len(tabs)):
+        new_tab = dbc.Tab(tab_id=tabs[i][0], label=tabs[i][1])
+        tab_objs.append(new_tab)
+    tab_group = dbc.Tabs(tab_objs, id=id, active_tab=active)
+    return dbc.CardHeader(tab_group)
+
+
+# Volumetric map layout functions
 def make_volumetric_map_filters(defaults: dict, layers: dict, values: list):
     return dbc.Card(
         dbc.CardBody(
@@ -86,38 +99,43 @@ def make_downloads_ui_elements(downloads: pd.DataFrame) -> list:
     return download_items
 
 
+def make_loader(elem):
+    return dcc.Loading(
+        elem,
+        style={
+            "visibility": "visible",
+            "backgroundColor": "transparent",
+            "opacity": 0.7,
+        },
+        type="dot",
+        parent_className="loader-wrapper",
+    )
+
+
 volumetric_map_fig = dbc.Row(
     dbc.Col(
-        dcc.Loading(
+        make_loader(
             dcc.Graph(
                 figure={},
                 className="dcc-graph",
                 id="volumetric-map-graph",
-            ),
-            style={
-                "visibility": "visible",
-                "backgroundColor": "transparent",
-                "opacity": 0.7,
-            },
-            type="dot",
-            parent_className="loader-wrapper",
-        ),
+            )
+        )
     )
 )
 
+
 volumetric_map_tab_content = dbc.Card(
     [
-        dbc.CardHeader(
-            dbc.Tabs(
-                [
-                    dbc.Tab(label="Cube View", tab_id="cube-tab"),
-                    dbc.Tab(label="Point View", tab_id="point-tab"),
-                    dbc.Tab(label="Layer View", tab_id="layer-tab"),
-                    dbc.Tab(label="Sphere View", tab_id="sphere-tab"),
-                ],
-                id="tabs",
-                active_tab="cube-tab",
-            )
+        make_tabs(
+            "volumetric-tabs",
+            "cube-tab",
+            [
+                ("cube-tab", "Cube View"),
+                ("point-tab", "Point View"),
+                ("layer-tab", "Layer View"),
+                ("sphere-tab", "Sphere View"),
+            ],
         ),
         dbc.CardBody(
             [

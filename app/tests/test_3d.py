@@ -3,8 +3,11 @@ import dash_bootstrap_components as dbc
 import plotly
 import pytest
 from dash import dcc, html
+import numpy as np
 import os
 import sys
+from dash._callback_context import context_value
+from dash._utils import AttributeDict
 
 if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
@@ -55,8 +58,19 @@ def test_make_mesh_settings():
         opacity=0.5,
     )
 
+    y_values = np.array([-10, -10, 0, 0, -10, -10, 0, 0])
+    z_values = np.array([-10, -5, -10, -5, -10, -5, -10, -5])
+
     assert settings2[0]["color"] == "#ED780B"
     assert settings2[0]["opacity"] == 0.5
+    assert np.array_equal(settings2[0]["y"], y_values) is True
+    assert np.array_equal(settings2[0]["z"], z_values) is True
+
+    settings3 = make_mesh_settings(
+        vertices, faces, "S1-4", x_map="x", y_map="z", z_map="y"
+    )
+    assert np.array_equal(settings3[0]["y"], z_values) is True
+    assert np.array_equal(settings3[0]["z"], y_values) is True
 
 
 def test_make_mesh_data():
@@ -72,36 +86,50 @@ def test_make_mesh_data():
 
 
 def test_make_mesh_fig():
-    fig1 = make_mesh_fig("S1")
+    fig1 = make_mesh_fig(0)
     assert len(fig1["data"]) == 9
     assert fig1["layout"]["height"] == 500
 
 
 def test_display_click_data():
-    click1 = [
-        {
-            "points": [
-                {
-                    "x": -392,
-                    "y": 1749.50244140625,
-                    "z": 746,
-                    "curveNumber": 0,
-                    "pointNumber": 52662,
-                    "i": 28916,
-                    "j": 28769,
-                    "k": 28768,
-                    "bbox": {
-                        "x0": 539.0667184592023,
-                        "x1": 539.0667184592023,
-                        "y0": 401.4491349814796,
-                        "y1": 401.4491349814796,
-                    },
+    def run_click_data(click):
+        traces = [
+            ["Body", "S1-1", "S1-4", "S1-6", "S1-7", "S1-9", "S1-12", "S1-14", "S1-15"]
+        ]
+        context_value.set(
+            AttributeDict(
+                **{
+                    "triggered_inputs": [
+                        {"prop_id": '{"index":0,"type":"organ-graph"}.clickData'}
+                    ]
                 }
-            ]
-        }
-    ]
+            )
+        )
+        return display_click_data(click, json.dumps(traces))
+
+    click1 = {
+        "points": [
+            {
+                "x": -392,
+                "y": 1749.50244140625,
+                "z": 746,
+                "curveNumber": 0,
+                "pointNumber": 52662,
+                "i": 28916,
+                "j": 28769,
+                "k": 28768,
+                "bbox": {
+                    "x0": 539.0667184592023,
+                    "x1": 539.0667184592023,
+                    "y0": 401.4491349814796,
+                    "y1": 401.4491349814796,
+                },
+            }
+        ]
+    }
+
     layout1 = json.loads(
-        json.dumps(display_click_data(click1), cls=plotly.utils.PlotlyJSONEncoder)
+        json.dumps(run_click_data(click1), cls=plotly.utils.PlotlyJSONEncoder)
     )
     testlayout1 = [
         dbc.CardHeader("Block Data"),
@@ -114,30 +142,29 @@ def test_display_click_data():
     test1 = json.loads(json.dumps(testlayout1, cls=plotly.utils.PlotlyJSONEncoder))
     assert layout1 == test1
 
-    click2 = [
-        {
-            "points": [
-                {
-                    "x": -10,
-                    "y": 0,
-                    "z": -5,
-                    "curveNumber": 4,
-                    "pointNumber": 0,
-                    "i": 0,
-                    "j": 1,
-                    "k": 3,
-                    "bbox": {
-                        "x0": 389.40599700379744,
-                        "x1": 389.40599700379744,
-                        "y0": 318.6925748500662,
-                        "y1": 318.6925748500662,
-                    },
-                }
-            ]
-        }
-    ]
+    click2 = {
+        "points": [
+            {
+                "x": -10,
+                "y": 0,
+                "z": -5,
+                "curveNumber": 4,
+                "pointNumber": 0,
+                "i": 0,
+                "j": 1,
+                "k": 3,
+                "bbox": {
+                    "x0": 389.40599700379744,
+                    "x1": 389.40599700379744,
+                    "y0": 318.6925748500662,
+                    "y1": 318.6925748500662,
+                },
+            }
+        ]
+    }
+
     layout2 = json.loads(
-        json.dumps(display_click_data(click2), cls=plotly.utils.PlotlyJSONEncoder)
+        json.dumps(run_click_data(click2), cls=plotly.utils.PlotlyJSONEncoder)
     )
     testlayout2 = [
         dbc.CardHeader("Block S1-7", class_name="card-title"),

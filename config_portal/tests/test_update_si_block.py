@@ -1,7 +1,8 @@
 import os
 import sys
 import pandas as pd
-from pathlib import Path
+from pathlib import Path, PosixPath
+import shutil
 import plotly
 import json
 
@@ -12,7 +13,7 @@ import app
 from config_components import validate
 from pages import home
 from pages.constants import FILE_DESTINATION as FD
-from helpers import make_upload_content, decode_str
+from helpers import make_upload_content, decode_str, clean_dir
 
 
 def dummy_function(file: bytes, which_headers: str) -> tuple[bool, str]:
@@ -43,6 +44,10 @@ def test_process_si_block_file():
         False,
         "Worksheet names must match the template.",
     )
+
+    # clean up depot directory
+    cleanup_status = clean_dir(FD["si-block"]["block-data"]["depot"])
+    assert cleanup_status[0] is True
 
 
 def test_check_excel_headers():
@@ -88,9 +93,19 @@ def test_update_links():
 
 
 def test_publish_si_block():
-    # test that depot folder has si files
-    assert Path(FD["si-block"]["block-data"]["depot"]).exists() is True
-    assert Path(FD["si-block"]["si-files"]["depot"]).exists() is True
+    pd.set_option("display.max_columns", None)
+    pd.set_option("display.max_rows", None)
+    pd.set_option("display.max_colwidth", None)
+    pd.set_option("display.width", None)
+
+    # get original thumbnails and blocks data so it can be reset after tests have run
+    tn_df_original = pd.read_csv(FD["thumbnails"]["catalog"])
+    block_data_original = pd.read_csv(FD["si-block"]["block-data"]["publish"])
+    si_files_original = pd.read_csv(FD["si-block"]["si-files"]["publish"])
+
+    # test the case where nothing has changed in si files or block data
+    block_data_original.to_csv(FD["si-block"]["block-data"]["depot"], index=False)
+    si_files_original.to_csv(FD["si-block"]["si-files"]["depot"], index=False)
 
     validate.publish_si_block()
 
@@ -101,6 +116,66 @@ def test_publish_si_block():
     # test that publish folder has si files
     assert Path(FD["si-block"]["block-data"]["publish"]).exists() is True
     assert Path(FD["si-block"]["si-files"]["publish"]).exists() is True
+
+    # test that published files have same content since depot files were identical
+    tn_df_1 = pd.read_csv(FD["thumbnails"]["catalog"])
+    block_data_1 = pd.read_csv(FD["si-block"]["block-data"]["publish"])
+    si_file_1 = pd.read_csv(FD["si-block"]["si-files"]["publish"])
+
+    assert block_data_1.equals(block_data_original)
+    assert si_file_1.equals(si_files_original)
+    assert tn_df_1["Name"].isin(tn_df_original["Name"]).all()
+
+    # test the case where a new image is added
+    df1 = pd.DataFrame(
+        data={
+            "Tissue Block": ["S1-15"],
+            "Image Set": ["S1-15-2"],
+            "Image Category": ["Optical Clearing"],
+            "File": ["S1-15-1.tif"],
+            "Height": [600],
+            "Width": [600],
+            "Slices": [1],
+            "Channels": [1],
+        }
+    )
+    df1.to_csv(FD["si-block"]["si-files"]["depot"], index=False)
+
+    validate.publish_si_block()
+
+    si_file_2 = pd.read_csv(FD["si-block"]["si-files"]["publish"])
+    tn_df_2 = pd.read_csv(FD["thumbnails"]["catalog"])
+    assert si_file_2["File"].str.fullmatch("S1-15-1.tif").any()
+    assert tn_df_2["Name"].str.fullmatch("S1-15-1.tif").any()
+
+    # test the case where an image is updated
+    df2 = pd.DataFrame(
+        data={
+            "Tissue Block": ["S1-15"],
+            "Image Set": ["S1-15-2"],
+            "Image Category": ["Optical Clearing"],
+            "File": ["S1-15-2.tif"],
+            "Height": [600],
+            "Width": [600],
+            "Slices": [1],
+            "Channels": [1],
+        }
+    )
+    df2.to_csv(FD["si-block"]["si-files"]["depot"], index=False)
+
+    validate.publish_si_block()
+
+    si_file_3 = pd.read_csv(FD["si-block"]["si-files"]["publish"])
+    tn_df_3 = pd.read_csv(FD["thumbnails"]["catalog"])
+    assert si_file_3["File"].str.fullmatch("S1-15-2.tif").any()
+    assert not si_file_3["File"].str.fullmatch("S1-15-1.tif").any()
+    assert tn_df_3["Name"].str.fullmatch("S1-15-2.tif").any()
+    assert not tn_df_3["Name"].str.fullmatch("S1-15-1.tif").any()
+
+    # clean up files that have been changed by tests
+    tn_df_original.to_csv(FD["thumbnails"]["catalog"], index=False)
+    block_data_original.to_csv(FD["si-block"]["block-data"]["publish"], index=False)
+    si_files_original.to_csv(FD["si-block"]["si-files"]["publish"], index=False)
 
 
 def test_update_si_block_output():
@@ -124,6 +199,10 @@ def test_update_si_block_output():
         )
     )
     assert result2[0]["props"]["header_class_name"] == "text-danger"
+
+    # clean up depot directory
+    cleanup_status = clean_dir(FD["si-block"]["block-data"]["depot"])
+    assert cleanup_status[0] is True
 
 
 def test_process_content():
@@ -190,3 +269,170 @@ def test_check_file_type():
         False,
         "Invalid file type tif",
     )
+
+
+def test_update_thumbnails_record():
+    # new_tr: {"Block": [], "Preview": [], "Name": [], "Link": []}
+    pd.set_option("display.max_columns", None)
+    pd.set_option("display.max_rows", None)
+    pd.set_option("display.max_colwidth", None)
+    pd.set_option("display.width", None)
+
+    # get initial value for thumbnails df
+    tn_initial = pd.read_csv(FD["thumbnails"]["catalog"])
+
+    # test adding an entry
+    df2 = pd.DataFrame(
+        data={
+            "Block": ["S1-1"],
+            "Preview": [
+                "../../assets/config/scientific-images/thumbnails/S1-1-1/S1-1-1_thumbnail.png"
+            ],
+            "Name": ["S1-1-1.tif"],
+            "Link": ["/scientific-images/S1-1/S1-1-1"],
+        }
+    )
+    # del2 = []
+    validate.update_thumbnails_record(df2)
+    result = pd.read_csv(FD["thumbnails"]["catalog"])
+    assert "/scientific-images/S1-1/S1-1-1" in result["Link"].values
+    assert len(result["Link"].values) == 6
+
+    # test updating an entry
+    df3 = pd.DataFrame(
+        data={
+            "Block": ["S1-1"],
+            "Preview": [
+                "../../assets/config/scientific-images/thumbnails/S1-1-1/S1-1-2_thumbnail.png"
+            ],
+            "Name": ["S1-1-2.tif"],
+            "Link": ["/scientific-images/S1-1/S1-1-1"],
+        }
+    )
+    # del3 = []
+    validate.update_thumbnails_record(df3)
+    result = pd.read_csv(FD["thumbnails"]["catalog"])
+    assert len(result["Link"].values) == 6
+    assert (
+        "../../assets/config/scientific-images/thumbnails/S1-1-1/S1-1-2_thumbnail.png"
+        in result["Preview"].values
+    )
+    assert (
+        "../../assets/config/scientific-images/thumbnails/S1-1-1/S1-1-1_thumbnail.png"
+        not in result["Preview"].values
+    )
+
+    # reset thumbnails df
+    tn_initial.to_csv(FD["thumbnails"]["catalog"], index=False)
+
+
+def test_generate_thumbnail():
+    # test removal of old path when new image has not been uploaded yet
+    img_set = "TEST-1-1"
+    block = "TEST-1"
+    namestem = "TEST-IMG-1-1"
+    dest = f"{FD['sci-images']['publish']}/{block}/{namestem}"
+    thumbnail_loc = f"{FD['thumbnails']['publish']}/{img_set}/{namestem}_thumbnail.png"
+    thumbnail_folder = Path(f"{FD['thumbnails']['publish']}/{img_set}")
+
+    if not Path.exists(thumbnail_folder):
+        Path.mkdir(thumbnail_folder, parents=True)
+
+    validate.generate_thumbnail(dest, img_set, thumbnail_loc)
+    path_status = Path.exists(thumbnail_folder)
+    assert path_status is False
+
+    # test scenario where thumbnail is made- images exist to use for thumbnail
+    img_set = "S1-1-1"
+    block = "S1-1"
+    namestem = "S1-1-1"
+    dest = f"{FD['sci-images']['publish']}/{block}/{namestem}"
+    thumbnail_loc = f"{FD['thumbnails']['publish']}/{img_set}/{namestem}_thumbnail.png"
+    thumbnail_folder = Path(f"{FD['thumbnails']['publish']}/{img_set}")
+    validate.generate_thumbnail(dest, img_set, thumbnail_loc)
+    path_status = Path.exists(thumbnail_folder)
+    assert path_status is True
+    files = thumbnail_folder.iterdir()
+    num_files = len([file for file in files if file.is_file()])
+    assert num_files > 0
+
+    # clean up the thumbnail generated by the test
+    shutil.rmtree(thumbnail_folder)
+
+
+def test_get_image_info():
+    # name validation is already tested in tests for check_image_name
+    # test that match is returned for exact file
+    df = pd.read_csv(FD["si-block"]["si-files"]["publish"])
+    result = validate.get_image_info("S1-1-1.tif", df)
+    assert result[0] is True
+    assert result[1] == "S1-1-1"
+    assert type(result[2]) is pd.DataFrame
+    assert result[2].shape == (1, 8)
+    assert result[3] == ""
+
+    # test that match is returned for name stem
+    result = validate.get_image_info("S1-1-1_C00000.png", df)
+    assert result[0] is True
+    assert result[1] == "S1-1-1"
+    assert type(result[2]) is pd.DataFrame
+    assert result[2].shape == (1, 8)
+    assert result[3] == ""
+
+
+def test_query_thumbnails_for_changed_filenames():
+    tn_df_original = pd.read_csv(FD["thumbnails"]["catalog"])
+    # test adding new image set
+    df1 = pd.DataFrame(
+        data={
+            "Tissue Block": ["S1-15"],
+            "Image Set": ["S1-15-2"],
+            "Image Category": ["Optical Clearing"],
+            "File": ["S1-15-1.tif"],
+            "Height": [600],
+            "Width": [600],
+            "Slices": [1],
+            "Channels": [1],
+        }
+    )
+    result1 = pd.Series(data=["S1-15-1.tif"])
+    assert validate.query_thumbnails_for_changed_filenames(df1, tn_df_original).equals(
+        result1
+    )
+
+    # test changing image mappings
+    tn_df = pd.read_csv(FD["thumbnails"]["catalog"])
+    df2 = pd.DataFrame(
+        data={
+            "Tissue Block": ["S1-15"],
+            "Image Set": ["S1-15-2"],
+            "Image Category": ["Optical Clearing"],
+            "File": ["S1-15-2.tif"],
+            "Height": [600],
+            "Width": [600],
+            "Slices": [1],
+            "Channels": [1],
+        }
+    )
+    result2 = pd.Series(data=["S1-15-2.tif"])
+    assert validate.query_thumbnails_for_changed_filenames(df2, tn_df).equals(result2)
+
+    # test doing both
+    tn_df = pd.read_csv(FD["thumbnails"]["catalog"])
+    df3 = pd.DataFrame(
+        data={
+            "Tissue Block": ["S1-15", "S1-15"],
+            "Image Set": ["S1-15-2", "S1-15-4"],
+            "Image Category": ["Optical Clearing", "Optical Clearing"],
+            "File": ["S1-15-1.tif", "S1-15-2.tif"],
+            "Height": [600, 600],
+            "Width": [600, 600],
+            "Slices": [1, 1],
+            "Channels": [1, 1],
+        }
+    )
+    result3 = pd.Series(data=["S1-15-1.tif", "S1-15-2.tif"])
+    assert validate.query_thumbnails_for_changed_filenames(df3, tn_df).equals(result3)
+
+    # reset thumbnails to original set
+    tn_df_original.to_csv(FD["thumbnails"]["catalog"], index=False)

@@ -55,9 +55,9 @@ def test_update_df_entries():
         data={"File": ["1_2_3.obj", "1 2 3.obj"], "Name": ["S1-6", "S1-7"]}
     )
 
-    new_entries_invalid = pd.DataFrame(
-        data={"File": ["*.obj", "1 2 3.obj"], "Name": ["S1-6", "S1-7"]}
-    )
+    # new_entries_invalid = pd.DataFrame(
+    #     data={"File": ["*.obj", "1 2 3.obj"], "Name": ["S1-6", "S1-7"]}
+    # )
 
     old_entries = pd.DataFrame(
         data={"File": ["1_2_3.obj", "a-b-c.obj"], "Name": ["S1-1", "S1-4"]}
@@ -77,15 +77,15 @@ def test_update_df_entries():
     updated_df2 = validate.update_df_entries(old_entries, new_entries_overlap, "File")
     expected_df2 = pd.DataFrame(
         data={
-            "File": ["1_2_3.obj", "a-b-c.obj", "1 2 3.obj"],
-            "Name": ["S1-6", "S1-4", "S1-7"],
+            "File": ["a-b-c.obj", "1_2_3.obj", "1 2 3.obj"],
+            "Name": ["S1-4", "S1-6", "S1-7"],
         }
     )
     assert updated_df2.equals(expected_df2)
 
-    # test failure condition
-    failed_update = validate.update_df_entries(old_entries, new_entries_invalid, "File")
-    assert failed_update[0] is False
+    # # test failure condition
+    # failed_update = validate.update_df_entries(old_entries, new_entries_invalid, "File")
+    # assert failed_update[0] is False
 
 
 def test_update_entries():
@@ -122,6 +122,19 @@ def test_update_entries():
     full_df = validate.update_entries(full_loc_str, new_df, "File")
     assert full_df.empty is False
     assert full_df.shape[0] == 10
+
+    # test bad filename
+    bad_fn_df = pd.DataFrame(
+        data={
+            "Organ": ["C1"],
+            "Name": ["Body"],
+            "File": ["*.obj"],
+            "Color": ["FF0000"],
+            "Opacity": [1],
+        }
+    )
+    fail_df = validate.update_entries(full_loc_str, bad_fn_df, "File")
+    assert fail_df[0] is False
 
     shutil.rmtree(blank_loc.parent)
     shutil.rmtree(full_loc.parent)

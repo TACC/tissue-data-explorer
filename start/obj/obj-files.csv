@@ -1,10 +1,10 @@
-Organ,Name,File,Color,Opacity
-S1,Body,sphere.obj,#EC8728,1
-S1,S1-1,S1_Sphere_Lower_S1-1.obj,#067BC2,0.6
-S1,S1-4,S1_Sphere_Lower_S1-4.obj,#067BC2,0.6
-S1,S1-6,S1_Sphere_Middle_S1-6.obj,#067BC2,0.6
-S1,S1-7,S1_Sphere_Middle_S1-7.obj,#067BC2,0.6
-S1,S1-9,S1_Sphere_Middle_S1-9.obj,#067BC2,0.6
-S1,S1-12,S1_Sphere_Middle_S1-12.obj,#067BC2,0.6
-S1,S1-14,S1_Sphere_Upper_S1-14.obj,#067BC2,0.6
-S1,S1-15,S1_Sphere_Upper_S1-15.obj,#067BC2,0.6
+Organ,Name,File,Color,Opacity,x axis,y axis,z axis
+S1,Body,sphere.obj,#EC8728,1,x,z,y
+S1,S1-1,S1_Sphere_Lower_S1-1.obj,#067BC2,0.6,x,z,y
+S1,S1-4,S1_Sphere_Lower_S1-4.obj,#067BC2,0.6,x,z,y
+S1,S1-6,S1_Sphere_Middle_S1-6.obj,#067BC2,0.6,x,z,y
+S1,S1-7,S1_Sphere_Middle_S1-7.obj,#067BC2,0.6,x,z,y
+S1,S1-9,S1_Sphere_Middle_S1-9.obj,#067BC2,0.6,x,z,y
+S1,S1-12,S1_Sphere_Middle_S1-12.obj,#067BC2,0.6,x,z,y
+S1,S1-14,S1_Sphere_Upper_S1-14.obj,#067BC2,0.6,x,z,y
+S1,S1-15,S1_Sphere_Upper_S1-15.obj,#067BC2,0.6,x,z,y
