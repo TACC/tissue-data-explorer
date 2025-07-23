@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from dash import (
     Input,
     Output,
+    State,
     callback,
     dcc,
     html,
@@ -16,7 +17,7 @@ from dash import (
 )
 from pywavefront import Wavefront
 from pages.constants import FILE_DESTINATION as FD
-from pages.ui import make_tabs
+from pages.ui import make_tabs, make_loader
 
 
 register_page(__name__, path="/3d", title="3D Tissue Sample Model")
@@ -30,7 +31,28 @@ app_logger.setLevel(gunicorn_logger.level)
 blocks = pd.read_csv(FD["si-block"]["block-data"])
 
 
-def get_traces() -> tuple[list, list]:
+def get_organs() -> list:
+    # Get organ ID's
+    traces = pd.read_csv(f"{FD["obj-files"]["summary"]}/obj-files.csv")
+    organs = list(traces["Organ"].unique())
+    organ_descs = []
+    organ_traces = []
+
+    # Get organ descriptions and trace name
+    for i in range(len(organs)):
+        desc_block = blocks.loc[blocks["Organ ID"] == organs[i]]
+        if desc_block.empty:
+            desc = organs[i]
+        else:
+            desc = desc_block["Organ Description"].unique()[0]
+        organ_descs.append(desc)
+        this_organ = traces.loc[traces["Organ"] == organs[i]].copy()
+        organ_traces.append(this_organ["Name"].to_list())
+
+    return organ_descs, organ_traces
+
+
+def get_trace(idx) -> tuple[list, list]:
     """
     Splits organ data into a separate Dataframe for each organ. This is necessary because when the traces are added to
     separate graphs per organ, Dash will restart the indexing for the traces for each graph. Since the trace index is
@@ -43,27 +65,9 @@ def get_traces() -> tuple[list, list]:
 
     # split data by organ for later access
     organs = list(traces["Organ"].unique())
-    organ_traces = []
-    for organ in organs:
-        # make a new dataframe and replace the index so we can find the traces based on their index within the graph
-        this_organ = traces.loc[traces["Organ"] == organ].copy()
-        this_organ.index = pd.Index([x for x in range(this_organ.shape[0])])
-        organ_traces.append(this_organ)
-    return organs, organ_traces
-
-
-organs, organ_traces = get_traces()
-
-
-def get_organ_desc(idx: int) -> str:
-    """Gets the organ description based on the organ index"""
-    row = blocks.loc[blocks["Organ ID"] == organ_traces[idx].loc[0, "Organ"]]
-    organ_desc = ""
-    if row.empty:
-        organ_desc = organ_traces[idx].loc[0, "Organ"]
-    else:
-        organ_desc = row["Organ Description"].unique()[0]
-    return organ_desc
+    this_organ = traces.loc[traces["Organ"] == organs[idx]].copy()
+    this_organ.index = pd.Index([x for x in range(this_organ.shape[0])])
+    return this_organ
 
 
 def check_null(value):
@@ -157,21 +161,22 @@ def make_mesh_data(
 
 def make_mesh_fig(idx=0) -> go.Figure:
     """Plots the objects described in an obj in a Plotly Dash figure"""
-    if organ_traces[idx].shape[0] == 0:
+    organ_trace = get_trace(idx)
+    if organ_trace.shape[0] == 0:
         return
     start = True
-    for i in organ_traces[idx].index:
+    for i in organ_trace.index:
         try:
-            file_loc = f"{FD["obj-files"]["volumes"]}/{organ_traces[idx].at[i, "File"]}"
+            file_loc = f"{FD["obj-files"]["volumes"]}/{organ_trace.at[i, "File"]}"
             if start:
                 data1 = make_mesh_data(
-                    organ_traces[idx].at[i, "Name"],
+                    organ_trace.at[i, "Name"],
                     file_loc,
-                    organ_traces[idx].at[i, "Color"],
-                    organ_traces[idx].at[i, "Opacity"],
-                    organ_traces[idx].at[i, "x axis"],
-                    organ_traces[idx].at[i, "y axis"],
-                    organ_traces[idx].at[i, "z axis"],
+                    organ_trace.at[i, "Color"],
+                    organ_trace.at[i, "Opacity"],
+                    organ_trace.at[i, "x axis"],
+                    organ_trace.at[i, "y axis"],
+                    organ_trace.at[i, "z axis"],
                 )
                 fig = go.Figure(data1)
                 name = data1[0]["name"]
@@ -179,13 +184,13 @@ def make_mesh_fig(idx=0) -> go.Figure:
                 start = False
             else:
                 data = make_mesh_data(
-                    organ_traces[idx].at[i, "Name"],
+                    organ_trace.at[i, "Name"],
                     file_loc,
-                    organ_traces[idx].at[i, "Color"],
-                    organ_traces[idx].at[i, "Opacity"],
-                    organ_traces[idx].at[i, "x axis"],
-                    organ_traces[idx].at[i, "y axis"],
-                    organ_traces[idx].at[i, "z axis"],
+                    organ_trace.at[i, "Color"],
+                    organ_trace.at[i, "Opacity"],
+                    organ_trace.at[i, "x axis"],
+                    organ_trace.at[i, "y axis"],
+                    organ_trace.at[i, "z axis"],
                 )
                 fig.add_trace(go.Mesh3d(data[0]))
                 name = data[0]["name"]
@@ -249,13 +254,13 @@ def make_graph_layout(organ=1, idx=0) -> html.Section:
 
 
 def layout(**kwargs):
-    if len(organs) == 0:
+    organ_descs, organ_traces = get_organs()
+    if len(organ_traces) == 0:
         return html.Div("No 3D models have been loaded.")
     # add a tab for each organ
     tab_list = []
-    for i in range(len(organs)):
-        organ_desc = get_organ_desc(i)
-        this_organ = (f"tab-{i}", organ_desc)
+    for i in range(len(organ_descs)):
+        this_organ = (f"tab-{i}", organ_descs[i])
         tab_list.append(this_organ)
 
     tab_area = dbc.Card(
@@ -267,28 +272,32 @@ def layout(**kwargs):
             ),
             dbc.CardBody(
                 [
-                    dcc.Loading(
-                        html.Div(make_graph_layout(organ_desc, 0), id="model-fig"),
-                        style={
-                            "visibility": "visible",
-                            "backgroundColor": "transparent",
-                            "opacity": 0.7,
-                        },
-                        type="dot",
-                        parent_className="loader-wrapper",
-                    ),
+                    html.Div(
+                        make_graph_layout(organ_descs[0], 0),
+                        id="model-fig",
+                    )
                 ]
             ),
         ]
     )
-    return html.Div(tab_area)
+    # save state
+    return make_loader(
+        html.Div(
+            children=[
+                html.Div(tab_area),
+                dcc.Store(id="organ-descs", data=json.dumps(organ_descs)),
+                dcc.Store("organ-traces", data=json.dumps(organ_traces)),
+            ]
+        )
+    )
 
 
 @callback(
     Output({"type": "click-data", "index": MATCH}, "children"),
     Input({"type": "organ-graph", "index": MATCH}, "clickData"),
+    State("organ-traces", "data"),
 )
-def display_click_data(click_data):
+def display_click_data(click_data, organ_traces):
     blank_content = "Click on a block to view available datasets"
     blank_card_content = [
         dbc.CardHeader("Block Data"),
@@ -301,9 +310,10 @@ def display_click_data(click_data):
     if click_data:
         input_id = callback_context.triggered[0]["prop_id"].split(".")[0]
         idx = int(json.loads(input_id)["index"])
+        organ_traces_list = json.loads(organ_traces)
         row = blocks.loc[
             blocks["Tissue Block"]
-            == organ_traces[idx].loc[click_data["points"][0]["curveNumber"], "Name"]
+            == organ_traces_list[idx][click_data["points"][0]["curveNumber"]]
         ]
         if row.empty:
             return blank_card_content
@@ -341,9 +351,11 @@ def display_click_data(click_data):
 @callback(
     Output("model-fig", "children"),
     Input("model-tabs", "active_tab"),
+    State("organ-descs", "data"),
 )
-def update_fig(tab):
+def update_fig(tab, organ_descs):
     # get index from tab id
     idx = int(tab[-1])
-    organ_desc = get_organ_desc(idx)
+    descs = json.loads(organ_descs)
+    organ_desc = descs[idx]
     return make_graph_layout(organ=organ_desc, idx=idx)

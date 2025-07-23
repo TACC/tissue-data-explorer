@@ -93,6 +93,9 @@ def test_make_mesh_fig():
 
 def test_display_click_data():
     def run_click_data(click):
+        traces = [
+            ["Body", "S1-1", "S1-4", "S1-6", "S1-7", "S1-9", "S1-12", "S1-14", "S1-15"]
+        ]
         context_value.set(
             AttributeDict(
                 **{
@@ -102,7 +105,7 @@ def test_display_click_data():
                 }
             )
         )
-        return display_click_data(click)
+        return display_click_data(click, json.dumps(traces))
 
     click1 = {
         "points": [

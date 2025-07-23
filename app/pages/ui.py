@@ -99,22 +99,28 @@ def make_downloads_ui_elements(downloads: pd.DataFrame) -> list:
     return download_items
 
 
+def make_loader(elem):
+    return dcc.Loading(
+        elem,
+        style={
+            "visibility": "visible",
+            "backgroundColor": "transparent",
+            "opacity": 0.7,
+        },
+        type="dot",
+        parent_className="loader-wrapper",
+    )
+
+
 volumetric_map_fig = dbc.Row(
     dbc.Col(
-        dcc.Loading(
+        make_loader(
             dcc.Graph(
                 figure={},
                 className="dcc-graph",
                 id="volumetric-map-graph",
-            ),
-            style={
-                "visibility": "visible",
-                "backgroundColor": "transparent",
-                "opacity": 0.7,
-            },
-            type="dot",
-            parent_className="loader-wrapper",
-        ),
+            )
+        )
     )
 )
 
