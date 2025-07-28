@@ -17,7 +17,8 @@ from dash import (
 )
 from pywavefront import Wavefront
 from pages.constants import FILE_DESTINATION as FD
-from pages.ui import make_tabs, make_loader
+from pages.ui import make_tabs
+from pages.home import cache
 
 
 register_page(__name__, path="/3d", title="3D Tissue Sample Model")
@@ -159,6 +160,7 @@ def make_mesh_data(
     return data
 
 
+@cache.memoize()
 def make_mesh_fig(idx=0) -> go.Figure:
     """Plots the objects described in an obj in a Plotly Dash figure"""
     organ_trace = get_trace(idx)
@@ -270,25 +272,16 @@ def layout(**kwargs):
                 "tab-0",
                 tab_list,
             ),
-            dbc.CardBody(
-                [
-                    html.Div(
-                        make_graph_layout(organ_descs[0], 0),
-                        id="model-fig",
-                    )
-                ]
-            ),
+            dbc.CardBody([html.Div(id="model-fig")]),
         ]
     )
     # save state
-    return make_loader(
-        html.Div(
-            children=[
-                html.Div(tab_area),
-                dcc.Store(id="organ-descs", data=json.dumps(organ_descs)),
-                dcc.Store("organ-traces", data=json.dumps(organ_traces)),
-            ]
-        )
+    return html.Div(
+        children=[
+            html.Div(tab_area),
+            dcc.Store(id="organ-descs", data=json.dumps(organ_descs)),
+            dcc.Store("organ-traces", data=json.dumps(organ_traces)),
+        ]
     )
 
 

@@ -114,12 +114,10 @@ def make_loader(elem):
 
 volumetric_map_fig = dbc.Row(
     dbc.Col(
-        make_loader(
-            dcc.Graph(
-                figure={},
-                className="dcc-graph",
-                id="volumetric-map-graph",
-            )
+        dcc.Graph(
+            figure={},
+            className="dcc-graph",
+            id="volumetric-map-graph",
         )
     )
 )

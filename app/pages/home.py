@@ -2,9 +2,10 @@ import logging
 
 import dash_ag_grid as dag
 import pandas as pd
-from dash import html, register_page
+from dash import html, register_page, get_app
 from components import alerts
 from pages.constants import FILE_DESTINATION as FD
+from flask_caching import Cache
 
 register_page(__name__, path="/")
 
@@ -12,6 +13,12 @@ app_logger = logging.getLogger(__name__)
 gunicorn_logger = logging.getLogger("gunicorn.error")
 app_logger.handlers = gunicorn_logger.handlers
 app_logger.setLevel(gunicorn_logger.level)
+
+
+# set up cache
+app = get_app()
+cache = Cache(app.server)
+cache.init_app(app.server)
 
 
 def read_blocks():

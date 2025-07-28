@@ -6,3 +6,4 @@ __pycache__*
 .env
 **/config_portal/depot/**
 **/config_portal/config/**
+**/cache/**

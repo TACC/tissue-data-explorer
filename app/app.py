@@ -16,6 +16,7 @@ from dash import (
 from flask import Flask
 
 from components import header
+from pages.ui import make_loader
 
 
 def handle_args():
@@ -36,17 +37,27 @@ def handle_args():
 # Flask setup
 server = Flask(__name__)
 
+# Cache setup
+config = {
+    "CACHE_TYPE": "FileSystemCache",
+    "CACHE_DEFAULT_TIMEOUT": 31536000,  # arbitrarily long cache time
+    "CACHE_DIR": "cache",
+}
+server.config.from_mapping(config)
+
 
 def serve_layout():
     return html.Div(
         children=[
             dcc.Location(id="url"),
             header.make_header("app"),
-            html.Main(
-                dbc.Container(
-                    page_container,
-                    id="content-div",
-                    class_name="main-div",
+            make_loader(
+                html.Main(
+                    dbc.Container(
+                        page_container,
+                        id="content-div",
+                        class_name="main-div",
+                    )
                 )
             ),
             header.footer,
