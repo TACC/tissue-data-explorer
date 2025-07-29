@@ -3,7 +3,7 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-
+import dash_ag_grid as dag
 
 C_SCHEMES = [
     "bluered",
@@ -22,6 +22,50 @@ C_SCHEMES = [
     "ylgnbu",
     "ylorrd",
 ]
+
+
+# summary page functions
+def make_grid(df, columns, which_grid, organ="P1"):
+    o = df.loc[df["Organ ID"] == organ]
+    orows = o.to_dict("records")
+    oheight = len(orows) * 41.25 + 49 + 15
+
+    return dag.AgGrid(
+        id=f"{organ}-{which_grid.lower()}-df",
+        rowData=orows,
+        columnDefs=columns,
+        className="ag-theme-alpine block-grid",
+        columnSize="sizeToFit",
+        style={"height": oheight},
+    )
+
+
+def make_summary_grids(organs, df, columns, key, desc, which_grid):
+    sections = []
+    for organ in organs:
+        organ_data = df.loc[df[key] == organ]
+        if not organ_data.empty:
+            # assumes they have set the organ description consistently
+            organ_desc = organ_data.at[organ_data.index[0], desc]
+            if len(sections) == 0:
+                section = html.Section(
+                    [
+                        html.Header(html.H2(f"{organ_desc} {which_grid.capitalize()}")),
+                        make_grid(df, columns, which_grid, organ),
+                    ]
+                )
+            else:
+                section = html.Section(
+                    [
+                        html.Header(
+                            html.H2(f"{organ_desc} {which_grid.capitalize()}"),
+                            className="middle-section",
+                        ),
+                        make_grid(df, columns, which_grid, organ),
+                    ]
+                )
+            sections.append(section)
+    return html.Div(sections)
 
 
 # generic layout functions

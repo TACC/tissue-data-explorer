@@ -28,13 +28,15 @@ gunicorn_logger = logging.getLogger("gunicorn.error")
 app_logger.handlers = gunicorn_logger.handlers
 app_logger.setLevel(gunicorn_logger.level)
 
-# get block data
-blocks = pd.read_csv(FD["si-block"]["block-data"])
+
+def get_blocks():
+    return pd.read_csv(FD["si-block"]["block-data"])
 
 
 def get_organs() -> list:
     # Get organ ID's
     traces = pd.read_csv(f"{FD["obj-files"]["summary"]}/obj-files.csv")
+    blocks = get_blocks()
     organs = list(traces["Organ"].unique())
     organ_descs = []
     organ_traces = []
@@ -304,6 +306,7 @@ def display_click_data(click_data, organ_traces):
         input_id = callback_context.triggered[0]["prop_id"].split(".")[0]
         idx = int(json.loads(input_id)["index"])
         organ_traces_list = json.loads(organ_traces)
+        blocks = get_blocks()
         row = blocks.loc[
             blocks["Tissue Block"]
             == organ_traces_list[idx][click_data["points"][0]["curveNumber"]]

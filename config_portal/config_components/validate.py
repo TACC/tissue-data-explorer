@@ -143,7 +143,7 @@ REQUIRED_HEADERS = {
             "z axis",
         ]
     },
-    "reports": {"reports": ["Name", "Link"]},
+    "reports": {"reports": ["Name", "Organ ID", "Organ Description", "Link"]},
 }
 
 FD = constants.FILE_DESTINATION
