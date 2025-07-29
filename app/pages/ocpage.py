@@ -1,10 +1,8 @@
 import logging
-
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import Input, Output, State, callback, dcc, html, no_update, register_page
 from PIL import Image
-
 from pages.constants import FILE_DESTINATION as FD
 
 app_logger = logging.getLogger(__name__)
@@ -12,12 +10,15 @@ gunicorn_logger = logging.getLogger("gunicorn.error")
 app_logger.handlers = gunicorn_logger.handlers
 app_logger.setLevel(gunicorn_logger.level)
 
-s_imgs = pd.read_csv(FD["si-block"]["si-files"])
+
+def get_img(iset: str) -> pd.DataFrame:
+    s_imgs = pd.read_csv(FD["si-block"]["si-files"])
+    return s_imgs.loc[(s_imgs["Image Set"] == iset)]
 
 
 def title(iset=None, block=None):
     if iset:
-        img = s_imgs.loc[(s_imgs["Image Set"] == iset)]
+        img = get_img(iset)
         if img.empty:
             return "Scientific Images"
         else:
@@ -98,7 +99,7 @@ def make_download_section(filename):
 
 def layout(iset=None, **kwargs):
     # handle bad image set values
-    img = s_imgs.loc[(s_imgs["Image Set"] == iset)]
+    img = get_img(iset)
     if img.empty:
         return html.Div(html.P("Invalid image set requested"))
 

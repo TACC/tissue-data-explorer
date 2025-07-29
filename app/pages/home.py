@@ -1,11 +1,11 @@
 import logging
-
-import dash_ag_grid as dag
 import pandas as pd
 from dash import html, register_page, get_app
+from flask_caching import Cache
 from components import alerts
 from pages.constants import FILE_DESTINATION as FD
-from flask_caching import Cache
+from pages.ui import make_summary_grids
+
 
 register_page(__name__, path="/")
 
@@ -23,21 +23,6 @@ cache.init_app(app.server)
 
 def read_blocks():
     return pd.read_csv(FD["si-block"]["block-data"])
-
-
-def make_grid(blocks, columns, organ="P1"):
-    o = blocks.loc[blocks["Organ ID"] == organ]
-    orows = o.to_dict("records")
-    oheight = len(orows) * 41.25 + 49 + 15
-
-    return dag.AgGrid(
-        id=f"{organ}-df",
-        rowData=orows,
-        columnDefs=columns,
-        className="ag-theme-alpine block-grid",
-        columnSize="sizeToFit",
-        style={"height": oheight},
-    )
 
 
 def layout():
@@ -79,28 +64,6 @@ def layout():
         else:
             k += 1
 
-    sections = []
-    for organ in organs:
-        organ_data = blocks.loc[blocks["Organ ID"] == organ]
-        if not organ_data.empty:
-            # assumes they have set the organ description consistently
-            organ_desc = organ_data.at[organ_data.index[0], "Organ Description"]
-            if len(sections) == 0:
-                section = html.Section(
-                    [
-                        html.Header(html.H2(f"{organ_desc} Datasets")),
-                        make_grid(blocks, columns, organ),
-                    ]
-                )
-            else:
-                section = html.Section(
-                    [
-                        html.Header(
-                            html.H2(f"{organ_desc} Datasets"),
-                            className="middle-section",
-                        ),
-                        make_grid(blocks, columns, organ),
-                    ]
-                )
-            sections.append(section)
-    return html.Div(sections)
+    return make_summary_grids(
+        organs, blocks, columns, "Organ ID", "Organ Description", "datasets"
+    )
