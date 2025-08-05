@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw, ImageOps
 import logging
 import base64
 from collections.abc import Callable
-from pages import constants
+from pages.constants import FILE_DESTINATION as FD
 
 MAX_TITLE_LENGTH = 2048
 MAX_FILENAME_LENGTH = 255
@@ -53,7 +53,6 @@ VALID_EXTS = {
     ],
 }
 
-
 VALID_MIMES = {
     "excel": [
         "application/vnd.ms-excel",
@@ -73,6 +72,7 @@ VALID_MIMES = {
     ],
     "image": ["image/tiff", "image/png", "video/x-msvideo", "image/jpeg"],
 }
+
 REQUIRED_HEADERS = {
     "si-block": {
         "block-data": [
@@ -145,8 +145,6 @@ REQUIRED_HEADERS = {
     },
     "reports": {"reports": ["Name", "Organ ID", "Organ Description", "Link"]},
 }
-
-FD = constants.FILE_DESTINATION
 
 app_logger = logging.getLogger(__name__)
 gunicorn_logger = logging.getLogger("gunicorn.error")
@@ -528,6 +526,29 @@ def save_thumbnail(img, thumbnail_folder, thumbnail_loc):
     )
 
 
+def collect_pngs_for_thumbnail(dest: str) -> list:
+    """
+    Checks the destination folder for PNG images to use for generating a thumbnail and returns selected images.
+    """
+    p = Path(dest)
+    display_imgs = []
+    channels = []
+
+    # collect the images with PNG naming scheme
+    if Path.exists(p):
+        for file in p.iterdir():
+            if file.is_file() and file.suffix == ".png":
+                nameparts = file.name.split("_C")
+                is_display_img = check_png_name_ending(file.name, nameparts)
+                if is_display_img[0]:
+                    # check if this channel is already represented in the list
+                    if nameparts[-1][0] not in channels:
+                        # add it to list if not
+                        channels.append(nameparts[-1][0])
+                        display_imgs.append(Image.open(file))
+    return display_imgs
+
+
 def generate_thumbnail(
     dest: str, img_set: str, thumbnail_loc: str
 ) -> tuple[bool, bool, str]:
@@ -537,22 +558,7 @@ def generate_thumbnail(
     Returns (success, error message)
     """
     try:
-        p = Path(dest)
-        display_imgs = []
-        channels = []
-
-        # collect the images with PNG naming scheme
-        if Path.exists(p):
-            for file in p.iterdir():
-                if file.is_file() and file.suffix == ".png":
-                    nameparts = file.name.split("_C")
-                    is_display_img = check_png_name_ending(file.name, nameparts)
-                    if is_display_img[0]:
-                        # check if this channel is already represented in the list
-                        if nameparts[-1][0] not in channels:
-                            # add it to list if not
-                            channels.append(nameparts[-1][0])
-                            display_imgs.append(Image.open(file))
+        display_imgs = collect_pngs_for_thumbnail(dest)
 
         # Delete old thumbnail if exists. This is necessary because the image set could be changed to point to a different image.
         thumbnail_folder = Path(f"{FD['thumbnails']['publish']}/{img_set}")
@@ -891,20 +897,23 @@ def make_cubes_df(
             z_transform - 0.001,
         ],
     }
-    cubes_df = pd.DataFrame().reindex(columns=points_df.columns)
+    cubes_df = pd.DataFrame(columns=points_df.columns).astype(dtype=points_df.dtypes)
 
     # for each row in the source df, make 8 rows in the new df. Each row represents a vertex of a rectangular
     # prism around the provided point
     for i in points_df.index:
-        new_x = [points_df.loc[i, "X Center"] + x for x in transform["x"]]
-        new_y = [points_df.loc[i, "Y Center"] + y for y in transform["y"]]
-        new_z = [points_df.loc[i, "Z Center"] + z for z in transform["z"]]
+        new_x = [points_df.at[i, "X Center"] + x for x in transform["x"]]
+        new_y = [points_df.at[i, "Y Center"] + y for y in transform["y"]]
+        new_z = [points_df.at[i, "Z Center"] + z for z in transform["z"]]
         for j in range(8):
             idx = j + (i * 8)
-            cubes_df.loc[idx] = points_df.loc[i]
-            cubes_df.loc[idx, "X Center"] = new_x[j]
-            cubes_df.loc[idx, "Y Center"] = new_y[j]
-            cubes_df.loc[idx, "Z Center"] = new_z[j]
+            cubes_df = pd.concat(
+                [cubes_df, points_df.loc[i].to_frame().T], ignore_index=True
+            )
+            cubes_df.at[idx, "X Center"] = new_x[j]
+            cubes_df.at[idx, "Y Center"] = new_y[j]
+            cubes_df.at[idx, "Z Center"] = new_z[j]
+    cubes_df = cubes_df.astype(dtype=points_df.dtypes)
     return cubes_df
 
 
