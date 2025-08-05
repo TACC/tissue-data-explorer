@@ -1,7 +1,7 @@
 import os
 import sys
 import pandas as pd
-from pathlib import Path, PosixPath
+from pathlib import Path
 import shutil
 import plotly
 import json
@@ -93,10 +93,10 @@ def test_update_links():
 
 
 def test_publish_si_block():
-    pd.set_option("display.max_columns", None)
-    pd.set_option("display.max_rows", None)
-    pd.set_option("display.max_colwidth", None)
-    pd.set_option("display.width", None)
+    # pd.set_option("display.max_columns", None)
+    # pd.set_option("display.max_rows", None)
+    # pd.set_option("display.max_colwidth", None)
+    # pd.set_option("display.width", None)
 
     # get original thumbnails and blocks data so it can be reset after tests have run
     tn_df_original = pd.read_csv(FD["thumbnails"]["catalog"])

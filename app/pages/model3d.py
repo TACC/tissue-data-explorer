@@ -33,6 +33,17 @@ def get_blocks():
     return pd.read_csv(FD["si-block"]["block-data"])
 
 
+def filter_blocks(curve_number) -> tuple[str, pd.DataFrame]:
+    blocks = get_blocks()
+    row = blocks.loc[blocks["Tissue Block"] == curve_number]
+    print("row:\n", row)
+    if not row.empty:
+        block_name = row.iloc[0]["Tissue Block"]
+    else:
+        block_name = ""
+    return block_name, row
+
+
 def get_organs() -> list:
     # Get organ ID's
     traces = pd.read_csv(f"{FD["obj-files"]["summary"]}/obj-files.csv")
@@ -306,23 +317,19 @@ def display_click_data(click_data, organ_traces):
         input_id = callback_context.triggered[0]["prop_id"].split(".")[0]
         idx = int(json.loads(input_id)["index"])
         organ_traces_list = json.loads(organ_traces)
-        blocks = get_blocks()
-        row = blocks.loc[
-            blocks["Tissue Block"]
-            == organ_traces_list[idx][click_data["points"][0]["curveNumber"]]
-        ]
+        block_name, row = filter_blocks(
+            organ_traces_list[idx][click_data["points"][0]["curveNumber"]]
+        )
         if row.empty:
             return blank_card_content
-        block_name = row.iloc[0]["Tissue Block"]
         app_logger.debug(f"Displaying click data for {block_name}")
-        card_content = []
-        card_body_content = []
-        card_content.append(
+        card_content = [
             dbc.CardHeader(
                 "Block" + " " + str(row.iloc[0]["Tissue Block"]),
                 class_name="card-title",
             )
-        )
+        ]
+        card_body_content = []
         data_options = {
             "Anatomical region: ": "Anatomical region",
             "View scientific images": "Images",

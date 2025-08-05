@@ -78,6 +78,118 @@ title_form = dbc.Card(
     class_name="form-card",
 )
 
+volumetric_map_data_acc_notes = [
+    [
+        "Upload Requirements",
+        html.Ul(
+            [
+                html.Li("No files over 150 MB."),
+                html.Li(
+                    [
+                        "Volumetric map data must be in a file named ",
+                        html.Strong("volumetric-map-data.xlsx"),
+                    ]
+                ),
+                html.Li(
+                    [
+                        "Downloads data must be in a file named ",
+                        html.Strong("downloads.xlsx"),
+                    ]
+                ),
+            ]
+        ),
+    ],
+    [
+        "Supported File Types",
+        ", ".join(validate.VALID_EXTS["excel/vol"]),
+    ],
+    [
+        "Volumetric Map Data Requirements",
+        html.Ul(
+            [
+                html.Li(
+                    "The volumetric-map-data.xlsx file must include all of the tabs included in the example workbook"
+                ),
+                html.Li(
+                    "All of the columns in the example workbook are required except for the value columns from Column I-O in the points_data worksheet"
+                ),
+                html.Li(
+                    "The value columns are optional: provide as many as you like and name them as you see fit"
+                ),
+            ]
+        ),
+    ],
+    [
+        "Downloads Requirements",
+        html.Ul(
+            [
+                html.Li(
+                    "Filenames in downloads.xlsx must be unique and must match the name of a file provided to this interface exactly"
+                ),
+                html.Li(
+                    "Do not use any characters besides a-z, A_Z, 0-9, -, _, and whitespace in the download filenames"
+                ),
+                html.Li("Files with the same block will be displayed on the same page"),
+                html.Li(
+                    "New downloads.xlsx entries will be added to existing downloads.xlsx entries from previous uploads"
+                ),
+                html.Li(
+                    "If you upload any other file with a name that matches a previously uploaded file exactly, it will replace the old version of that file"
+                ),
+            ]
+        ),
+    ],
+]
+
+sci_images_acc_notes = [
+    [
+        "Upload Requirements",
+        "No files over 150 MB. Can upload source files for download from website and .PNG images for display on website. Source file names must match names in image metadata file exactly. PNG image file names must follow the format described in Image Names. New images will replace existing images with the same name.",
+    ],
+    [
+        "Supported File Types",
+        ", ".join(validate.VALID_EXTS["image"]),
+    ],
+    [
+        "Image Names",
+        "PNG image names must be of the following format: {Source file name}_C{Channel number, starting at zero}{sequence number, starting at zero and padded with zeroes to four digits}. Example: P1_4A2_image_stack_C10001.png .",
+    ],
+]
+
+model_files_acc_notes = [
+    [
+        "Upload Instructions",
+        "No files over 150 MB. Please upload model files in .obj format and a summary file called obj-files.xlsx that lists the model files",
+    ],
+    [
+        "Summary File",
+        html.Ul(
+            [
+                html.Li("Please name the file obj-files.xlsx"),
+                html.Li(
+                    "Files with the same value in the Organ column will be displayed together in the same figure"
+                ),
+                html.Li(
+                    "When a file's Name value matches a tissue block exactly, information about that tissue block will be displayed to the user when they click on that element"
+                ),
+                html.Li("Specify color with a hex value"),
+                html.Li("Opacity is a number between 0 and 1"),
+            ]
+        ),
+    ],
+    [
+        "OBJ Files",
+        html.Ul(
+            [
+                html.Li(
+                    "The app does not use texture coordinates, vertex normals, or parameter space vertices to display the models, so please only include v and f tags to reduce file size"
+                ),
+                html.Li("Model file names must be unique"),
+            ]
+        ),
+    ],
+]
+
 
 def layout(**kwargs):
     if not current_user.is_authenticated:
@@ -122,72 +234,7 @@ def layout(**kwargs):
                             "volumetric-map",
                             MAX_FILE_SIZE,
                             accordion=True,
-                            acc_notes=[
-                                [
-                                    "Upload Requirements",
-                                    html.Ul(
-                                        [
-                                            html.Li("No files over 150 MB."),
-                                            html.Li(
-                                                [
-                                                    "Volumetric map data must be in a file named ",
-                                                    html.Strong(
-                                                        "volumetric-map-data.xlsx"
-                                                    ),
-                                                ]
-                                            ),
-                                            html.Li(
-                                                [
-                                                    "Downloads data must be in a file named ",
-                                                    html.Strong("downloads.xlsx"),
-                                                ]
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                                [
-                                    "Supported File Types",
-                                    ", ".join(validate.VALID_EXTS["excel/vol"]),
-                                ],
-                                [
-                                    "Volumetric Map Data Requirements",
-                                    html.Ul(
-                                        [
-                                            html.Li(
-                                                "The volumetric-map-data.xlsx file must include all of the tabs included in the example workbook"
-                                            ),
-                                            html.Li(
-                                                "All of the columns in the example workbook are required except for the value columns from Column I-O in the points_data worksheet"
-                                            ),
-                                            html.Li(
-                                                "The value columns are optional: provide as many as you like and name them as you see fit"
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                                [
-                                    "Downloads Requirements",
-                                    html.Ul(
-                                        [
-                                            html.Li(
-                                                "Filenames in downloads.xlsx must be unique and must match the name of a file provided to this interface exactly"
-                                            ),
-                                            html.Li(
-                                                "Do not use any characters besides a-z, A_Z, 0-9, -, _, and whitespace in the download filenames"
-                                            ),
-                                            html.Li(
-                                                "Files with the same block will be displayed on the same page"
-                                            ),
-                                            html.Li(
-                                                "New downloads.xlsx entries will be added to existing downloads.xlsx entries from previous uploads"
-                                            ),
-                                            html.Li(
-                                                "If you upload any other file with a name that matches a previously uploaded file exactly, it will replace the old version of that file"
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                            ],
+                            acc_notes=volumetric_map_data_acc_notes,
                             upload_multiple=True,
                         ),
                         dcc.Loading(html.Div(id="output-volumetric-map-upload")),
@@ -204,20 +251,7 @@ def layout(**kwargs):
                             90,
                             example=False,
                             accordion=True,
-                            acc_notes=[
-                                [
-                                    "Upload Requirements",
-                                    "No files over 150 MB. Can upload source files for download from website and .PNG images for display on website. Source file names must match names in image metadata file exactly. PNG image file names must follow the format described in Image Names. New images will replace existing images with the same name.",
-                                ],
-                                [
-                                    "Supported File Types",
-                                    ", ".join(validate.VALID_EXTS["image"]),
-                                ],
-                                [
-                                    "Image Names",
-                                    "PNG image names must be of the following format: {Source file name}_C{Channel number, starting at zero}{sequence number, starting at zero and padded with zeroes to four digits}. Example: P1_4A2_image_stack_C10001.png .",
-                                ],
-                            ],
+                            acc_notes=sci_images_acc_notes,
                             upload_multiple=True,
                         ),
                         dcc.Loading(html.Div(id="output-sci-images-upload")),
@@ -236,43 +270,7 @@ def layout(**kwargs):
                             "obj-files",
                             MAX_FILE_SIZE,
                             accordion=True,
-                            acc_notes=[
-                                [
-                                    "Upload Instructions",
-                                    "No files over 150 MB. Please upload model files in .obj format and a summary file called obj-files.xlsx that lists the model files",
-                                ],
-                                [
-                                    "Summary File",
-                                    html.Ul(
-                                        [
-                                            html.Li(
-                                                "Please name the file obj-files.xlsx"
-                                            ),
-                                            html.Li(
-                                                "Files with the same value in the Organ column will be displayed together in the same figure"
-                                            ),
-                                            html.Li(
-                                                "When a file's Name value matches a tissue block exactly, information about that tissue block will be displayed to the user when they click on that element"
-                                            ),
-                                            html.Li("Specify color with a hex value"),
-                                            html.Li(
-                                                "Opacity is a number between 0 and 1"
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                                [
-                                    "OBJ Files",
-                                    html.Ul(
-                                        [
-                                            html.Li(
-                                                "The app does not use texture coordinates, vertex normals, or parameter space vertices to display the models, so please only include v and f tags to reduce file size"
-                                            ),
-                                            html.Li("Model file names must be unique"),
-                                        ]
-                                    ),
-                                ],
-                            ],
+                            acc_notes=model_files_acc_notes,
                             upload_multiple=True,
                         ),
                     ],

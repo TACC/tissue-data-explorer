@@ -32,9 +32,9 @@ def test_make_cubes_df():
     points_df = pd.DataFrame(
         data={
             "Block ID": [1, 2],
-            "X Center": [1, 3],
-            "Y Center": [1, 3],
-            "Z Center": [1, 3],
+            "X Center": [1.0, 3],
+            "Y Center": [1.0, 3],
+            "Z Center": [1.0, 3],
             "X Size": [2, 2],
             "Y Size": [2, 2],
             "Z Size": [2, 2],
@@ -43,7 +43,6 @@ def test_make_cubes_df():
         }
     )
     expected_cube_df = pd.DataFrame(
-        dtype="object",
         data={
             "Block ID": [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2],
             "X Center": [

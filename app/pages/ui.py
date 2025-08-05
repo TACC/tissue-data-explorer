@@ -48,22 +48,18 @@ def make_summary_grids(organs, df, columns, key, desc, which_grid):
             # assumes they have set the organ description consistently
             organ_desc = organ_data.at[organ_data.index[0], desc]
             if len(sections) == 0:
-                section = html.Section(
-                    [
-                        html.Header(html.H2(f"{organ_desc} {which_grid.capitalize()}")),
-                        make_grid(df, columns, which_grid, organ),
-                    ]
-                )
+                header = html.Header(html.H2(f"{organ_desc} {which_grid.capitalize()}"))
             else:
-                section = html.Section(
-                    [
-                        html.Header(
-                            html.H2(f"{organ_desc} {which_grid.capitalize()}"),
-                            className="middle-section",
-                        ),
-                        make_grid(df, columns, which_grid, organ),
-                    ]
+                header = html.Header(
+                    html.H2(f"{organ_desc} {which_grid.capitalize()}"),
+                    className="middle-section",
                 )
+            section = html.Section(
+                [
+                    header,
+                    make_grid(df, columns, which_grid, organ),
+                ]
+            )
             sections.append(section)
     return html.Div(sections)
 
