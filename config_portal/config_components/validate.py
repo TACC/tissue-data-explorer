@@ -13,6 +13,9 @@ import logging
 import base64
 from collections.abc import Callable
 from pages.constants import FILE_DESTINATION as FD
+import cv2
+import numpy as np
+import sys
 
 MAX_TITLE_LENGTH = 2048
 MAX_FILENAME_LENGTH = 255
@@ -75,75 +78,107 @@ VALID_MIMES = {
 
 REQUIRED_HEADERS = {
     "si-block": {
-        "block-data": [
-            "Tissue Block",
-            "Organ ID",
-            "Organ Description",
-            "Order",
-            "Anatomical region",
-            "Images",
-            "Reports",
-            "Volumetric Map",
-        ],
-        "si-files": [
-            "Tissue Block",
-            "Image Set",
-            "Image Category",
-            "File",
-            "Height",
-            "Width",
-            "Slices",
-            "Channels",
-        ],
+        "block-data": {
+            "key": "",
+            "columns": (
+                "Tissue Block",
+                "Organ ID",
+                "Organ Description",
+                "Order",
+                "Anatomical region",
+                "Images",
+                "Reports",
+                "Volumetric Map",
+            ),
+        },
+        "si-files": {
+            "key": "",
+            "columns": (
+                "Tissue Block",
+                "Image Set",
+                "Image Category",
+                "File",
+                "Height",
+                "Width",
+                "Slices",
+                "Channels",
+            ),
+        },
     },
     "volumetric-map": {
-        "meta": [
-            "Block",
-            "Title",
-            "Description",
-        ],
-        "points_data": [
-            "Block ID",
-            "X Center",
-            "Y Center",
-            "Z Center",
-            "X Size",
-            "Y Size",
-            "Z Size",
-            "Category",
-        ],
-        "value_ranges": ["Row Label"],
-        "category_labels": [
-            "Category",
-            "Label (Only True)",
-            "Label (Only False)",
-        ],
-        "vol_measurements": [
-            "X Min",
-            "X Max",
-            "X Size",
-            "Y Min",
-            "Y Max",
-            "Y Size",
-            "Z Min",
-            "Z Max",
-            "Z Size",
-        ],
+        "meta": {
+            "key": "",
+            "columns": (
+                "Block",
+                "Title",
+                "Description",
+            ),
+        },
+        "points_data": {
+            "key": "",
+            "columns": (
+                "Block ID",
+                "X Center",
+                "Y Center",
+                "Z Center",
+                "X Size",
+                "Y Size",
+                "Z Size",
+                "Category",
+            ),
+        },
+        "value_ranges": {"key": "", "columns": ("Row Label",)},
+        "category_labels": {
+            "key": "",
+            "columns": (
+                "Category",
+                "Label (Only True)",
+                "Label (Only False)",
+            ),
+        },
+        "vol_measurements": {
+            "key": "Name",
+            "columns": (
+                "X Min",
+                "X Max",
+                "X Size",
+                "Y Min",
+                "Y Max",
+                "Y Size",
+                "Z Min",
+                "Z Max",
+                "Z Size",
+            ),
+        },
     },
-    "downloads": {"downloads": ["Name", "Label", "Desc", "Block"]},
+    "image-layer": {
+        "images": {"key": "Name", "columns": ("Block", "Name", "Z Center")},
+        "colorscales": {"key": "Entry", "columns": ()},
+    },
+    "downloads": {
+        "downloads": {"key": "Name", "columns": ("Name", "Label", "Desc", "Block")}
+    },
     "obj-files": {
-        "files": [
-            "Organ",
-            "Name",
-            "File",
-            "Color",
-            "Opacity",
-            "x axis",
-            "y axis",
-            "z axis",
-        ]
+        "files": {
+            "key": "File",
+            "columns": (
+                "Organ",
+                "Name",
+                "File",
+                "Color",
+                "Opacity",
+                "x axis",
+                "y axis",
+                "z axis",
+            ),
+        }
     },
-    "reports": {"reports": ["Name", "Organ ID", "Organ Description", "Link"]},
+    "reports": {
+        "reports": {
+            "key": "",
+            "columns": ("Name", "Organ ID", "Organ Description", "Link"),
+        }
+    },
 }
 
 app_logger = logging.getLogger(__name__)
@@ -244,7 +279,7 @@ def check_excel_headers(file: bytes, which_headers: str) -> tuple[bool, str, dic
         else:
             return False, dfr[1], {}
         # check that required columns are in the workbook
-        if set(REQUIRED_HEADERS[which_headers][key]).issubset(
+        if set(REQUIRED_HEADERS[which_headers][key]["columns"]).issubset(
             set(df.columns.to_list())
         ):
             dfs[key] = sanitize_df(df)
@@ -734,17 +769,18 @@ def process_content(
 def is_valid_filename(*args, fn="") -> bool:
     """Returns a boolean: True if the name conforms to rules, False if it is over the max
     length or contains forbidden characters."""
-    if len(fn) > MAX_FILENAME_LENGTH:
-        return False, f"{fn} exceeds {MAX_FILENAME_LENGTH} characters in length"
+    fn_str = str(fn)
+    if len(fn_str) > MAX_FILENAME_LENGTH:
+        return False, f"{fn_str} exceeds {MAX_FILENAME_LENGTH} characters in length"
 
-    matches = re.findall(r"[^\w\s_()\-.]", fn)
+    matches = re.findall(r"[^\w\s_()\-.]", fn_str)
 
     if len(matches) == 0:
         return True, ""
     else:
         return (
             False,
-            f"{fn} contains the following forbidden character sequence(s): {', '.join(matches)}",
+            f"{fn_str} contains the following forbidden character sequence(s): {', '.join(matches)}",
         )
 
 
@@ -789,7 +825,7 @@ def update_df_entries(
 def update_entries(
     old_loc: str, new_entries: pd.DataFrame, key_column: str
 ) -> pd.DataFrame:
-    """Used with check_downloads_xlsx and process_obj_files"""
+    """Used with check_catalog_xlsx and process_obj_files"""
     new = False
     try:
         df = pd.read_csv(old_loc)
@@ -809,37 +845,42 @@ def update_entries(
     return df
 
 
-def check_downloads_xlsx(file: bytes, filename: str) -> tuple[bool, str]:
-    """Checks downloads.xlsx, which can be uploaded to volumetric map files, for duplicates and
-    unsafe filenames, then saves a csv in depot."""
-    header_check = check_excel_headers(file, "downloads")
-    # update downloads.csv
+def check_catalog_xlsx(
+    file: bytes, dest_folder: str, which_header: str
+) -> tuple[bool, str]:
+    """
+    Check the headers of an excel file that catalogs configuration assets, then save a csv in the depot.
+
+    Used with the volumetric map data downloads.xlsx file, image-layers-metadata.xlsx, and obj-files.xlsx.
+    """
+    header_check = check_excel_headers(file, which_header)
+    p = Path(dest_folder)
+    if not Path.exists(p):
+        Path.mkdir(p, parents=True)
     if header_check[0]:
-        df = update_entries(
-            FD["volumetric-map"]["downloads-file"]["depot"],
-            header_check[2]["downloads"],
-            "Name",
-        )
-        p = Path(FD["volumetric-map"]["downloads-file"]["depot"])
-        if not Path.exists(p.parent):
-            Path.mkdir(p.parent, parents=True)
-        # save csv
-        df.to_csv(FD["volumetric-map"]["downloads-file"]["depot"], index=False)
-        # no filename because this file's presence alone should not trigger name update
+        # print(header_check[2], file=sys.stdout, flush=True)
+        for sheet_name in header_check[2].keys():
+            df = update_entries(
+                f"{dest_folder}/{sheet_name}.csv",
+                header_check[2][sheet_name],
+                REQUIRED_HEADERS[which_header][sheet_name]["key"],
+            )
+            # save csv
+            df.to_csv(f"{dest_folder}/{sheet_name}.csv", index=False)
         return True, ""
     else:
         return False, header_check[1]
 
 
-def get_volumetric_map_folder(filename):
-    """Determines the block name for the download file so that the file can be saved in the
+def get_volumetric_map_folder(filename: str, catalog_loc: str):
+    """Determines the block name for the provided file so that the file can be saved in the
     correct folder"""
-    df = pd.read_csv(FD["volumetric-map"]["downloads-file"]["depot"])
+    df = pd.read_csv(catalog_loc)
     block = df["Block"][df["Name"] == filename]
     if block.empty:
         return (
             False,
-            f"{filename} is not present in downloads list. You must add an entry to downloads.xlsx to upload this file.",
+            f"{filename} is not present in file list. You must add an entry to the metadata for this file type to upload this file.",
         )
     return True, block.iloc[0]
 
@@ -965,12 +1006,16 @@ def process_volumetric_map_data(file: bytes, filename: str) -> tuple[bool, str]:
     if filename == "volumetric-map-data.xlsx":
         return check_volumetric_map_data_xlsx(file)
     elif filename == "downloads.xlsx":
-        return check_downloads_xlsx(file, filename)
+        return check_catalog_xlsx(
+            file, FD["volumetric-map"]["downloads"]["depot"], "downloads"
+        )
     elif Path(filename).suffix == ".xlsx":
         open_results = open_excel_from_bytes(file)
         if open_results[0]:
             try:
-                block = get_volumetric_map_folder(filename)
+                block = get_volumetric_map_folder(
+                    filename, FD["volumetric-map"]["downloads-file"]["depot"]
+                )
                 if not block[0]:
                     return False, block[1]
                 loc = f"{FD['volumetric-map']['downloads']['depot']}/{block[1]}"
@@ -982,7 +1027,9 @@ def process_volumetric_map_data(file: bytes, filename: str) -> tuple[bool, str]:
             return False, open_results[1]
     else:
         try:
-            block = get_volumetric_map_folder(filename)
+            block = get_volumetric_map_folder(
+                filename, FD["volumetric-map"]["downloads-file"]["depot"]
+            )
             if not block[0]:
                 return False, block[1]
             loc = f"{FD['volumetric-map']['downloads']['depot']}/{block[1]}"
@@ -990,6 +1037,122 @@ def process_volumetric_map_data(file: bytes, filename: str) -> tuple[bool, str]:
         except Exception as err:
             app_logger.debug(traceback.print_exc())
             return False, str(err)
+
+
+def process_image_layer_data(file: bytes, filename: str) -> tuple[bool, str]:
+    p = Path(FD["image-layer"]["depot"])
+    if not Path.exists(p):
+        Path.mkdir(p, parents=True)
+    # throw an error if filename is not valid
+    is_valid = is_valid_filename(filename)
+    if not is_valid[0]:
+        return False, is_valid[1]
+    if filename == "image-layers-metadata.xlsx":
+        return check_catalog_xlsx(file, FD["image-layer"]["depot"], "image-layer")
+    else:
+        try:
+            p = Path(f"{FD["image-layer"]["depot"]}")
+            # print([x for x in p.iterdir()])
+            block = get_volumetric_map_folder(
+                filename, f"{FD["image-layer"]["depot"]}/images.csv"
+            )
+            if not block[0]:
+                return False, block[1]
+            # check that volumetric map data exists for this block. Otherwise the image can't be sized appropriately.
+            vm_p = Path(
+                f"{FD["volumetric-map"]["meta"]["publish"]}/{block[1]}/vol_measurements.csv"
+            )
+            if not vm_p.exists():
+                return (
+                    False,
+                    "You must publish volumetric map data for this block before loading layered images.",
+                )
+            loc = f"{FD["image-layer"]["depot"]}/{block[1]}"
+            return save_generic_file(loc, file, filename)
+        except Exception as err:
+            app_logger.debug(traceback.print_exc())
+            return False, str(err)
+
+
+def convert_img_to_greyscale_array(file, size):
+    img = cv2.imread(file)  # Loads image in BGR format
+    img = cv2.resize(img, size)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB
+
+    # === STEP 2: Convert to HSV color space ===
+    # HSV is used to extract the hue (color angle) and value (brightness)
+    hsv = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2HSV).astype(np.float32)
+    hue = hsv[:, :, 0]  # Hue channel, range 0–179 in OpenCV
+    val = hsv[:, :, 2]  # Value channel (brightness), range 0–255
+
+    # === STEP 3: Normalize hue to 0–255 scale for visualization ===
+    hue_norm = (hue * 255 / 179).astype(np.uint8)
+
+    # === STEP 4: Create background mask ===
+    # Background = pixels with low brightness (value < threshold)
+    background_threshold = 60
+    mask_background = val < background_threshold
+
+    # === STEP 5: Apply mask — set background to 255 (white in grayscale) ===
+    gray_cyclic = hue_norm.copy()
+    gray_cyclic[mask_background] = 255
+    return gray_cyclic
+
+
+def publish_image_layer_data() -> tuple[str, str, str]:
+    """Publishes layered image data.
+    Returns (title of update toast, description of update, success status)"""
+    p = Path(FD["image-layer"]["depot"])
+    try:
+        for file in p.iterdir():
+            if file.is_dir():
+                # create temp dir to put converted images in
+                temp_str = f"{FD["image-layer"]["depot"]}/{file.name}_temp"
+                temp_path = Path(temp_str)
+                if not Path.exists(temp_path):
+                    Path.mkdir(temp_path)
+                # get image size from volumetric map data
+                df = pd.read_csv(
+                    f"{FD["volumetric-map"]["meta"]["publish"]}/{file.name}/vol_measurements.csv"
+                )
+                width = df.at[0, "X Max"] - df.at[0, "X Min"]
+                height = df.at[0, "Y Max"] - df.at[0, "Y Min"]
+                for img in file.iterdir():
+                    # create greyscale image array
+                    img_arr = convert_img_to_greyscale_array(img, (width, height))
+                    # put it in temp dir
+                    np.savetxt(
+                        f"{temp_str}/{img.name[:-4]}.txt",
+                        img_arr,
+                        delimiter="\t",
+                        fmt="%.3f",
+                    )
+                # move the files to publish dir
+                move_dir(
+                    temp_path, f"{FD["image-layer"]["publish"]}/{file.name}/layers"
+                )
+                # delete temp dir
+                shutil.rmtree(temp_path)
+                # delete original images
+                shutil.rmtree(file)
+            elif file.name == "images.csv" or file.name == "colorscales.csv":
+                # update entries
+                publish_entries(
+                    f"{FD["image-layer"]["depot"]}/{file.name}",
+                    f"{FD["image-layer"]["publish"]}/{file.name}",
+                    REQUIRED_HEADERS["image-layer"][f"{file.name[:-4]}"]["key"],
+                )
+        return (
+            "Image layers updated",
+            "The configuration has been updated. Refresh the public-facing app to see the changes.",
+            "success",
+        )
+    except FileNotFoundError:
+        app_logger.debug(traceback.print_exc())
+        return ("Image layers not updated", "File not found", "failure")
+    except Exception as err:
+        app_logger.debug(traceback.print_exc())
+        return ("Image layers not updated", f"{err}", "failure")
 
 
 def move_dir(src: Path, dest: str) -> bool:
@@ -1056,26 +1219,11 @@ def process_obj_files(file: bytes, filename: str) -> tuple[bool, str]:
         return False, is_valid[1]
     # process summary file
     if filename == "obj-files.xlsx":
-        header_check = check_excel_headers(file, "obj-files")
-        if header_check[0]:
-            try:
-                # add new entries to summary csv
-                dest = Path(FD["obj-files"]["summary"]["depot"])
-                if not Path.exists(dest):
-                    Path.mkdir(dest, parents=True)
-                df = update_entries(
-                    f"{FD['obj-files']['summary']['depot']}/obj-files.csv",
-                    header_check[2]["files"],
-                    "File",
-                )
-                df.to_csv(
-                    f"{FD['obj-files']['summary']['depot']}/obj-files.csv", index=False
-                )
-                return True, ""
-            except Exception as err:
-                return False, str(err)
-        else:
-            return False, header_check[1]
+        return check_catalog_xlsx(
+            file,
+            f"{FD['obj-files']['summary']['depot']}",
+            "obj-files",
+        )
     # process any other file
     else:
         loc = FD["obj-files"]["volumes"]["depot"]

@@ -1,0 +1,5 @@
+Block,Name,Z Center,Colorscale
+S1-12,S1-12_L0.png,0,channel_split
+S1-12,S1-12_L1.png,50,channel_split
+S1-12,S1-12_L2.png,100,channel_split
+S1-12,S1-12_L3.png,150,channel_split

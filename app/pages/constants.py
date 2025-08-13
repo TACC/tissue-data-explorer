@@ -4,6 +4,7 @@ FILE_DESTINATION = {
         "si-files": "/app/assets/config/image-sets.csv",
     },
     "volumetric-map": "/app/assets/config/volumetric-map",
+    "image-layer": "/app/assets/config/volumetric-map",
     "obj-files": {
         "summary": "/app/assets/config/obj",
         "volumes": "/app/assets/config/obj/volumes",

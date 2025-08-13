@@ -15,13 +15,14 @@ from pages.constants import FILE_DESTINATION as FD
 def test_toggle_modal():
     results = []
 
-    results.append(home.toggle_modal(0, 0, 0, 0, 0, 0, 0, True, None))
-    results.append(home.toggle_modal(0, 1, 0, 0, 0, 0, 0, True, None))
-    results.append(home.toggle_modal(0, 0, 1, 0, 0, 0, 0, True, None))
-    results.append(home.toggle_modal(0, 0, 0, 1, 0, 0, 0, True, None))
-    results.append(home.toggle_modal(0, 0, 0, 0, 1, 0, 0, True, None))
-    results.append(home.toggle_modal(0, 0, 0, 0, 0, 1, 0, True, None))
-    results.append(home.toggle_modal(0, 0, 0, 0, 0, 0, 1, True, None))
+    results.append(home.toggle_modal(0, 0, 0, 0, 0, 0, 0, 0, True, None))
+    results.append(home.toggle_modal(0, 1, 0, 0, 0, 0, 0, 0, True, None))
+    results.append(home.toggle_modal(0, 0, 1, 0, 0, 0, 0, 0, True, None))
+    results.append(home.toggle_modal(0, 0, 0, 1, 0, 0, 0, 0, True, None))
+    results.append(home.toggle_modal(0, 0, 0, 0, 1, 0, 0, 0, True, None))
+    results.append(home.toggle_modal(0, 0, 0, 0, 0, 1, 0, 0, True, None))
+    results.append(home.toggle_modal(0, 0, 0, 0, 0, 0, 1, 0, True, None))
+    results.append(home.toggle_modal(0, 0, 0, 0, 0, 0, 0, 1, True, None))
 
     assert results[0][0] is True
     for i in range(1, len(results)):

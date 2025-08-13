@@ -36,7 +36,6 @@ def get_blocks():
 def filter_blocks(curve_number) -> tuple[str, pd.DataFrame]:
     blocks = get_blocks()
     row = blocks.loc[blocks["Tissue Block"] == curve_number]
-    print("row:\n", row)
     if not row.empty:
         block_name = row.iloc[0]["Tissue Block"]
     else:

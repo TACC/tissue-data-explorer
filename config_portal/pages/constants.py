@@ -20,6 +20,7 @@ FILE_DESTINATION = {
             "publish": "/config/volumetric-map/downloads.csv",
         },
     },
+    "image-layer": {"depot": "./depot/layers", "publish": "/config/volumetric-map"},
     "obj-files": {
         "summary": {"depot": "./depot/obj", "publish": "/config/obj"},
         "volumes": {"depot": "./depot/obj/volumes", "publish": "/config/obj/volumes"},

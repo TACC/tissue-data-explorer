@@ -13,9 +13,11 @@ from dash import (
 import pandas as pd
 import numpy as np
 from pathlib import Path
+from PIL import Image
 from pages.constants import FILE_DESTINATION as FD
 from components import alerts
 import pages.ui as ui
+import sys
 
 app_logger = logging.getLogger(__name__)
 gunicorn_logger = logging.getLogger("gunicorn.error")
@@ -38,10 +40,13 @@ register_page(
 
 
 # Initial data retrieval tasks
-
-
 def make_defaults(ranges_df: pd.DataFrame) -> dict:
-    defaults = {"d_scheme": "haline", "d_layer": "All", "d_category": "All"}
+    defaults = {
+        "d_scheme": "haline",
+        "d_layer": "All",
+        "i_layer": "All",
+        "d_category": "All",
+    }
     d_val = ranges_df.columns[np.nonzero(ranges_df.loc["Default"])].values[0]
     defaults["d_value"] = d_val
     return defaults
@@ -68,6 +73,48 @@ def make_layers(z_axis: list) -> list:
     return layers
 
 
+def make_image_layers(df: pd.DataFrame, block) -> dict:
+    # get entries for this block from df
+    this_block = df.loc[df["Block"] == block]
+    # get count of items in this block
+    num_entries = this_block["Block"].count()
+    # make layers list
+    layers = ["All"]
+    layers.extend([f"Image {i + 1}" for i in range(num_entries)])
+    return layers
+
+
+def get_all_images(block):
+    img_info = ui.get_image_info(block)
+    imgs = []
+    files = list(img_info["Name"])
+    for file in files:
+        fpath = Path(file)
+        fstem = fpath.stem
+        p = Path(f"{FD["image-layer"]}/{block}/layers/{fstem}.txt")
+        img = np.loadtxt(p, delimiter="\t")
+        imgs.append(img)
+    return img_info, imgs
+
+
+def get_colorscale(scale: str) -> list:
+    cs_df = pd.read_csv(f"{FD["image-layer"]}/colorscales.csv")
+    # filter down to just that colorscale
+    this_scale = cs_df.loc[cs_df["Scale Name"] == scale]
+
+    if this_scale.size > 0:
+        entries = this_scale["Entry"].to_list()
+        formatted_scale = []
+        for entry in entries:
+            scale_row = this_scale.loc[this_scale["Entry"] == entry]
+            scale_marker = scale_row["Scale Marker"].values[0]
+            scale_color = f"rgb({scale_row["R"].values[0]},{scale_row["G"].values[0]},{scale_row["B"].values[0]})"
+            formatted_scale.append([scale_marker, scale_color])
+        return formatted_scale
+    else:
+        return None
+
+
 def load_data(block: str) -> tuple[dict, dict, list, list, list, dict]:
     # page info dict, defaults dict, layers, category options, values, axes
     dir = f"{FD['volumetric-map']}/{block}"
@@ -76,6 +123,7 @@ def load_data(block: str) -> tuple[dict, dict, list, list, list, dict]:
     category_labels = pd.read_csv(f"{dir}/category_labels.csv")
     vol_measurements = pd.read_csv(f"{dir}/vol_measurements.csv")
     downloads = pd.read_csv(f"{FD['volumetric-map']}/downloads.csv")
+    image_layers_df = pd.read_csv(f"{FD["image-layer"]}/images.csv")
 
     # Get title and desc
     page_info = meta.iloc[0].to_dict()
@@ -89,20 +137,39 @@ def load_data(block: str) -> tuple[dict, dict, list, list, list, dict]:
     # Make layers list
     layers = make_layers(axes["Z"])
 
+    # Make image layers dict
+    image_layers = make_image_layers(image_layers_df, block)
+
     # make category options
     category_opts = category_labels.iloc[0].to_dict()
 
     # get value labels and min/maxes
     value_info = value_ranges.iloc[0:2].to_dict()
 
-    return page_info, defaults, layers, category_opts, value_info, axes, downloads
+    return (
+        page_info,
+        defaults,
+        layers,
+        image_layers,
+        category_opts,
+        value_info,
+        axes,
+        downloads,
+    )
 
 
 def layout(block=None, **kwargs):
     try:
-        page_info, defaults, layers, category_opts, value_info, axes, downloads = (
-            load_data(block)
-        )
+        (
+            page_info,
+            defaults,
+            layers,
+            image_layers,
+            category_opts,
+            value_info,
+            axes,
+            downloads,
+        ) = load_data(block)
     except FileNotFoundError:
         return alerts.send_toast(
             "Cannot load page",
@@ -126,12 +193,15 @@ def layout(block=None, **kwargs):
                     html.P(page_info["Description"]),
                     ui.make_volumetric_map_filters(defaults, layers, values),
                     html.Div(id="current-filters"),
-                    ui.volumetric_map_tab_content,
+                    ui.make_volumetric_map_tab_content(block),
                     dcc.Store(id="value-store"),
                     dcc.Store(id="color-store-sm"),
                     dcc.Store(id="cube-opacity-store-sm"),
                     dcc.Store(id="point-opacity-store-sm"),
                     dcc.Store(id="layer-store-sm"),
+                    dcc.Store(id="image-layer-selected-sm"),
+                    dcc.Store(id="image-layer-store-sm", data=image_layers),
+                    dcc.Store(id="image-opacity-store-sm"),
                     dcc.Store(id="category-selected"),
                     dcc.Store(id="category-store", data=category_opts),
                     dcc.Store(id="value-range-store", data=value_info),
@@ -168,6 +238,16 @@ def save_layer(value):
     return value
 
 
+@callback(Output("image-layer-selected-sm", "data"), Input("imagelayersdd", "value"))
+def save_image_layer(value):
+    return value
+
+
+@callback(Output("image-opacity-store-sm", "data"), Input("imageslider", "value"))
+def save_image_opacity(value):
+    return value
+
+
 @callback(Output("cube-opacity-store-sm", "data"), Input("cubeslider", "value"))
 def save_cube_opacity(value):
     return value
@@ -185,8 +265,20 @@ def save_point_opacity(value):
     State("category-store", "data"),
     State("point-opacity-store-sm", "data"),
     State("cube-opacity-store-sm", "data"),
+    State("image-layer-store-sm", "data"),
+    State("image-layer-selected-sm", "data"),
+    State("image-opacity-store-sm", "data"),
 )
-def update_controls(at, category_selected, category_data, point_opacity, cube_opacity):
+def update_controls(
+    at,
+    category_selected,
+    category_data,
+    point_opacity,
+    cube_opacity,
+    image_layers,
+    image_selected,
+    image_opacity,
+):
     if at == "layer-tab" or not at:
         return
     else:
@@ -196,13 +288,49 @@ def update_controls(at, category_selected, category_data, point_opacity, cube_op
             if key != "Category" and key != "Selected":
                 dd_opts.append(category_data[key])
         if at == "cube-tab":
-            return [ui.make_extra_filters(at, category_selected, dd_opts, cube_opacity)]
+            return [
+                ui.make_extra_filters(
+                    at,
+                    category_opt=category_selected,
+                    category_dd_opts=dd_opts,
+                    opacity=cube_opacity,
+                )
+            ]
+        if at == "cube-image-tab":
+            return [
+                ui.make_extra_filters(
+                    at,
+                    category_opt=category_selected,
+                    category_dd_opts=dd_opts,
+                    image_layer_opt=image_selected,
+                    image_layer_opts=image_layers,
+                    opacity=cube_opacity,
+                )
+            ]
         if at == "point-tab":
             return [
-                ui.make_extra_filters(at, category_selected, dd_opts, point_opacity)
+                ui.make_extra_filters(
+                    at,
+                    category_opt=category_selected,
+                    category_dd_opts=dd_opts,
+                    opacity=point_opacity,
+                )
+            ]
+        if at == "image-layer-tab":
+            return [
+                ui.make_extra_filters(
+                    at,
+                    image_layer_opt=image_selected,
+                    image_layer_opts=image_layers,
+                    image_opacity=image_opacity,
+                )
             ]
         if at == "sphere-tab":
-            return [ui.make_extra_filters(at, category_selected, dd_opts)]
+            return [
+                ui.make_extra_filters(
+                    at, category_opt=category_selected, category_dd_opts=dd_opts
+                )
+            ]
 
 
 @callback(
@@ -213,6 +341,8 @@ def update_controls(at, category_selected, category_data, point_opacity, cube_op
     Input("cube-opacity-store-sm", "data"),
     Input("point-opacity-store-sm", "data"),
     Input("layer-store-sm", "data"),
+    Input("image-layer-selected-sm", "data"),
+    Input("image-opacity-store-sm", "data"),
     Input("category-selected", "data"),
     State("category-store", "data"),
     State("value-range-store", "data"),
@@ -226,6 +356,8 @@ def update_fig(
     cubeopacity=0.4,
     pointopacity=0.1,
     layer="All",
+    image_layer="All",
+    image_opacity=1,
     category_selected="All",
     category_data={},
     value_range_dict={},
@@ -239,6 +371,8 @@ def update_fig(
         "cubeopacity": cubeopacity,
         "pointopacity": pointopacity,
         "layer": layer,
+        "image_layer": image_layer,
+        "image_opacity": image_opacity,
         "category_selected": category_selected,
     }
     settings = {
@@ -247,6 +381,8 @@ def update_fig(
         "cubeopacity": 0.4,
         "pointopacity": 0.1,
         "layer": "All",
+        "image_layer": "All",
+        "image_opacity": 1,
         "category_selected": "All",
     }
     for key in settings.keys():
@@ -274,6 +410,35 @@ def update_fig(
             layer=settings["layer"],
             category_opt=settings["category_selected"],
         )
+    if tab == "cube-image-tab":
+        try:
+            df = pd.read_csv(f"{FD['volumetric-map']}/{block}/cube_data.csv")
+        except FileNotFoundError:
+            return alerts.send_toast(
+                "Cannot load page",
+                "Missing required configuration, please contact an administrator to resolve the issue.",
+                "failure",
+            )
+
+        img_info, imgs = get_all_images(block)
+        scale = img_info["Colorscale"].unique().tolist()[0]
+        colorscale = get_colorscale(scale)
+        return ui.make_cube_image_fig(
+            axes,
+            value_ranges,
+            category_data,
+            df,
+            colorscheme=settings["color"],
+            value=settings["value"],
+            opacity=settings["cubeopacity"],
+            layer=settings["layer"],
+            image_layer=settings["image_layer"],
+            category_opt=settings["category_selected"],
+            metadata=img_info,
+            imgs=imgs,
+            colorscale=colorscale,
+        )
+
     elif tab == "point-tab":
         try:
             df = pd.read_csv(f"{FD['volumetric-map']}/{block}/points_data.csv")
@@ -308,6 +473,19 @@ def update_fig(
             colorscheme=settings["color"],
             value=settings["value"],
             layer=settings["layer"],
+        )
+    elif tab == "image-layer-tab":
+        img_info, imgs = get_all_images(block)
+        scale = img_info["Colorscale"].unique().tolist()[0]
+        colorscale = get_colorscale(scale)
+        # display them
+        return ui.make_image_layer_fig(
+            axes,
+            image_layer=settings["image_layer"],
+            metadata=img_info,
+            imgs=imgs,
+            colorscale=colorscale,
+            opacity=image_opacity,
         )
     elif tab == "sphere-tab":
         try:
