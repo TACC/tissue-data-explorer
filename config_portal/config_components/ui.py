@@ -8,6 +8,7 @@ PUBLISH_BUTTONS = [
     "obj-files",
     "sci-images",
     "reports",
+    "image-layers",
 ]
 
 

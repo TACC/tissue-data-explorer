@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import dash_ag_grid as dag
+from pages.constants import FILE_DESTINATION as FD
 
 C_SCHEMES = [
     "bluered",
@@ -163,27 +164,52 @@ volumetric_map_fig = dbc.Row(
 )
 
 
-volumetric_map_tab_content = dbc.Card(
-    [
-        make_tabs(
-            "volumetric-tabs",
-            "cube-tab",
-            [
-                ("cube-tab", "Cube View"),
-                ("point-tab", "Point View"),
-                ("layer-tab", "Layer View"),
-                ("sphere-tab", "Sphere View"),
-            ],
-        ),
-        dbc.CardBody(
-            [
-                volumetric_map_fig,
-                html.Div(id="volumetric-map-fig"),
-                html.Div(id="extra-volumetric-map-filters"),
-            ]
-        ),
-    ]
-)
+def get_image_info(block):
+    img_info = pd.read_csv(f"{FD["image-layer"]}/images.csv")
+    # filter to just the relevant block
+    img_info = img_info.loc[img_info["Block"] == block]
+    if img_info.size != 0:
+        img_info = img_info.sort_values(by=["Z Center"])
+    return img_info
+
+
+def make_volumetric_map_tab_content(block):
+    tabs = []
+    # find out if image layers have been loaded for this block
+    image_info = get_image_info(block)
+    if image_info.size == 0:
+        tabs = [
+            ("cube-tab", "Cube View"),
+            ("point-tab", "Point View"),
+            ("layer-tab", "Layer View"),
+            ("sphere-tab", "Sphere View"),
+        ]
+    else:
+        tabs = [
+            ("cube-tab", "Cube View"),
+            ("cube-image-tab", "Cube View with Images"),
+            ("point-tab", "Point View"),
+            ("layer-tab", "Layer View"),
+            ("image-layer-tab", "Image Layer View"),
+            ("sphere-tab", "Sphere View"),
+        ]
+
+    return dbc.Card(
+        [
+            make_tabs(
+                "volumetric-tabs",
+                "cube-tab",
+                tabs,
+            ),
+            dbc.CardBody(
+                [
+                    volumetric_map_fig,
+                    html.Div(id="volumetric-map-fig"),
+                    html.Div(id="extra-volumetric-map-filters"),
+                ]
+            ),
+        ]
+    )
 
 
 def make_opacity_slider(id, opacity):
@@ -210,7 +236,26 @@ def make_category_slider(start="All", category_options=["All"]):
     ]
 
 
-def make_extra_filters(tab, category_opt="All", category_dd_opts=["All"], opacity=0.4):
+def make_image_layer_dd(start="All", layers=["All"]):
+    return [
+        html.P("Choose an image:", className="card-text"),
+        dcc.Dropdown(
+            layers,
+            start,
+            id="imagelayersdd",
+        ),
+    ]
+
+
+def make_extra_filters(
+    tab,
+    category_opt="All",
+    category_dd_opts=["All"],
+    image_layer_opt="All",
+    image_layer_opts=["All"],
+    opacity=0.4,
+    image_opacity=1,
+):
     controls = []
     if tab == "cube-tab":
         controls = [
@@ -221,11 +266,37 @@ def make_extra_filters(tab, category_opt="All", category_dd_opts=["All"], opacit
             ),
             dbc.Col(children=make_opacity_slider("cubeslider", opacity), width=6, lg=8),
         ]
+    elif tab == "cube-image-tab":
+        controls = [
+            dbc.Col(
+                children=make_category_slider(category_opt, category_dd_opts),
+                width=2,
+                lg=3,
+            ),
+            dbc.Col(
+                children=make_image_layer_dd(image_layer_opt, image_layer_opts),
+                width=2,
+                lg=3,
+            ),
+            dbc.Col(children=make_opacity_slider("cubeslider", opacity), width=6, lg=6),
+        ]
     elif tab == "point-tab":
         controls = [
             dbc.Col(
                 children=make_opacity_slider("pointslider", opacity),
                 width=12,
+            ),
+        ]
+    elif tab == "image-layer-tab":
+        controls = [
+            dbc.Col(
+                children=make_image_layer_dd(image_layer_opt, image_layer_opts),
+                width=2,
+                lg=3,
+            ),
+            dbc.Col(
+                children=make_opacity_slider("imageslider", image_opacity),
+                width=9,
             ),
         ]
     elif tab == "sphere-tab":
@@ -295,6 +366,43 @@ def get_colors(df, value, y_axis):
             .to_list(),
         )
     return colors
+
+
+def gen_cube_triangles(df: pd.DataFrame) -> np.ndarray:
+    # In the dataset, within each set of points representing a cube, the points are ordered as follows:
+    # [
+    #     [x, y, z],
+    #     [x + x_dist, y, z],
+    #     [x, y + y_dist, z],
+    #     [x + x_dist, y + y_dist, z],
+    #     [x, y, z + z_dist],
+    #     [x + x_dist, y, z + z_dist],
+    #     [x, y + y_dist, z + z_dist],
+    #     [x + x_dist, y + y_dist, z + z_dist],
+    # ]
+
+    triangle_pattern = [
+        [0, 1, 2],
+        [0, 1, 4],
+        [0, 2, 4],
+        [4, 5, 1],
+        [4, 2, 6],
+        [4, 5, 6],
+        [3, 2, 6],
+        [3, 5, 1],
+        [3, 2, 1],
+        [7, 6, 5],
+        [7, 6, 3],
+        [7, 3, 5],
+    ]
+
+    all_triangles = []
+
+    for m in range(0, df.shape[0], 8):
+        all_triangles.extend([[m + x[0], m + x[1], m + x[2]] for x in triangle_pattern])
+
+    faces1 = np.array(all_triangles)
+    return np.transpose(faces1)
 
 
 def make_point_fig(
@@ -403,6 +511,44 @@ def make_layer_fig(
     return fig
 
 
+def make_image_layer_fig(
+    axes,
+    image_layer="All",
+    metadata=None,
+    imgs: list = None,
+    colorscale=None,
+    opacity=1,
+):
+    """Create figure for layer view of volumetric map data"""
+
+    colors = get_colorscale(colorscale)
+    data = []
+    z_values = list(metadata["Z Center"])
+
+    if image_layer == "All":
+        for img, z_val in zip(imgs, z_values):
+            surface = make_image_layer(
+                img, z_val, axes, colors, showscale=True, opacity=opacity
+            )
+            data.append(surface)
+    else:
+        idx = int(image_layer[-1]) - 1
+        surface = make_image_layer(
+            imgs[idx], z_values[idx], axes, colors, showscale=True, opacity=opacity
+        )
+        data.append(surface)
+
+    fig = go.Figure(data=data)
+
+    fig.update_layout(
+        scene=dict(
+            aspectmode="data",
+        ),
+    )
+
+    return fig
+
+
 def make_sphere(x, y, z, radius, resolution=5):
     """Calculate the coordinates to plot a sphere with center at (x, y, z). Returns three Numpy ndarrays."""
     u, v = np.mgrid[0 : 2 * np.pi : resolution * 2j, 0 : np.pi : resolution * 1j]
@@ -498,49 +644,16 @@ def make_cube_fig(
     Z = df3.loc[:, "Z Center"]
     values = df3.loc[:, value]
 
-    # In the dataset, within each set of points representing a cube, the points are ordered as follows:
-    # [
-    #     [x, y, z],
-    #     [x + x_dist, y, z],
-    #     [x, y + y_dist, z],
-    #     [x + x_dist, y + y_dist, z],
-    #     [x, y, z + z_dist],
-    #     [x + x_dist, y, z + z_dist],
-    #     [x, y + y_dist, z + z_dist],
-    #     [x + x_dist, y + y_dist, z + z_dist],
-    # ]
-
-    triangle_pattern = [
-        [0, 1, 2],
-        [0, 1, 4],
-        [0, 2, 4],
-        [4, 5, 1],
-        [4, 2, 6],
-        [4, 5, 6],
-        [3, 2, 6],
-        [3, 5, 1],
-        [3, 2, 1],
-        [7, 6, 5],
-        [7, 6, 3],
-        [7, 3, 5],
-    ]
-
-    all_triangles = []
-
-    for m in range(0, df3.shape[0], 8):
-        all_triangles.extend([[m + x[0], m + x[1], m + x[2]] for x in triangle_pattern])
-
-    faces1 = np.array(all_triangles)
-    faces2 = np.transpose(faces1)
+    faces = gen_cube_triangles(df3)
 
     fig1 = go.Figure(
         data=go.Mesh3d(
             x=X,
             y=Y,
             z=Z,
-            i=faces2[0],
-            j=faces2[1],
-            k=faces2[2],
+            i=faces[0],
+            j=faces[1],
+            k=faces[2],
             intensity=values,
             opacity=opacity,
             colorscale=colorscheme,
@@ -549,5 +662,89 @@ def make_cube_fig(
         )
     )
 
+    set_layout(fig1, axes)
+    return fig1
+
+
+def make_image_layer(img, z_val, axes, colors, showscale=False, opacity=1):
+    sm_df = pd.DataFrame(data=img)
+    Z1 = [[z_val for j in sm_df.columns] for k in sm_df.index.values]
+    surface = go.Surface(
+        x=[axes["X"][0] + m for m in sm_df.columns.values],
+        y=[axes["Y"][0] + n for n in sm_df.index.values],
+        z=Z1,
+        surfacecolor=sm_df.values,
+        colorscale=colors,
+        showscale=showscale,
+        opacity=opacity,
+    )
+    return surface
+
+
+def get_colorscale(scale):
+    if scale:
+        return scale
+    else:
+        return "greys"
+
+
+def make_cube_image_fig(
+    axes,
+    value_ranges,
+    category_labels,
+    df,
+    opacity=0.4,
+    colorscheme="haline",
+    value="",
+    layer="All",
+    image_layer="All",
+    category_opt="All",
+    metadata=None,
+    imgs=None,
+    colorscale=None,
+):
+    """Create figure for cube view of volumetric map data"""
+    df2 = select_layer(layer, df, axes["Z"])
+    df3 = select_category(category_opt, category_labels, df2)
+
+    X = df3.loc[:, "X Center"]
+    Y = df3.loc[:, "Y Center"]
+    Z = df3.loc[:, "Z Center"]
+    values = df3.loc[:, value]
+
+    faces = gen_cube_triangles(df3)
+
+    colors = get_colorscale(colorscale)
+
+    data = []
+    data.append(
+        go.Mesh3d(
+            x=X,
+            y=Y,
+            z=Z,
+            i=faces[0],
+            j=faces[1],
+            k=faces[2],
+            intensity=values,
+            opacity=opacity,
+            # colorbar=dict(orientation="h"),
+            colorscale=colorscheme,
+            cmin=value_ranges[0],
+            cmax=value_ranges[1],
+        )
+    )
+
+    z_values = list(metadata["Z Center"])
+
+    if image_layer == "All":
+        for img, z_val in zip(imgs, z_values):
+            surface = make_image_layer(img, z_val, axes, colors)
+            data.append(surface)
+    else:
+        idx = int(image_layer[-1]) - 1
+        surface = make_image_layer(imgs[idx], z_values[idx], axes, colors)
+        data.append(surface)
+
+    fig1 = go.Figure(data=data)
     set_layout(fig1, axes)
     return fig1

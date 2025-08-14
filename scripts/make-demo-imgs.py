@@ -2,7 +2,8 @@ import numpy as np
 from PIL import Image
 
 """
-This script was used to create the images used in the test data for this project.
+This script was used to create the images used in the test data for the image viewer 
+and the layered images in the volumetric map vidualization.
 """
 
 stacks = [
@@ -12,6 +13,7 @@ stacks = [
     (10, 2, (500, 1000), "S1-7-1"),
     (3, 3, (600, 300), "S1-7-2"),
     (1, 1, (600, 600), "S1-14-1"),
+    # (1, 1, (600, 1000), "S1-12"),
 ]
 
 for dim_set in stacks:
@@ -24,7 +26,12 @@ for dim_set in stacks:
         channel = []
         for j in range(dim_set[0]):
             # make all-black array
-            imarray = np.zeros(shape=(dim_set[2][0], dim_set[2][1], 3), dtype=np.int8)
+            imarray = np.zeros(shape=(dim_set[2][0], dim_set[2][1], 3), dtype=np.int16)
+            # make an all-white array
+            # imarray = np.full(
+            #     shape=(dim_set[2][0], dim_set[2][1], 3), dtype=np.uint8, fill_value=255
+            # )
+
             # generate x and y positions
             cluster_size = 10000
             x = np.random.normal(
@@ -46,6 +53,9 @@ for dim_set in stacks:
                 elif i == 1:
                     # red
                     imarray[this_x, this_y, 0] = val
+                    # to make an image with a white background, the other color values need to be set to 0
+                    # imarray[this_x, this_y, 1] = 0
+                    # imarray[this_x, this_y, 2] = 0
                 elif i == 2:
                     # green
                     imarray[this_x, this_y, 1] = val
@@ -56,7 +66,7 @@ for dim_set in stacks:
                     # purple
                     imarray[this_x, this_y, 0] = val
                     imarray[this_x, this_y, 2] = val
-            im = Image.fromarray(imarray.astype("uint8")).convert("RGBA")
+            im = Image.fromarray(imarray.astype("uint8")).convert("RGB")
             # save to PNG
             im.save(f"./output/{dim_set[3]}_C{i}{j:04}.png")
             # append to channel

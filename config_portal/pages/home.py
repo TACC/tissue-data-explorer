@@ -244,6 +244,26 @@ def layout(**kwargs):
                 html.Section(
                     [
                         ui.make_upload_card(
+                            "Update layered images",
+                            [
+                                [
+                                    "Metadata file must be named ",
+                                    html.Strong("image-layers-metadata.xlsx"),
+                                    ". See example for required format:",
+                                ]
+                            ],
+                            "image-layers",
+                            MAX_FILE_SIZE,
+                            summary_note="Upload images to display as layers within the volumetric map data visualization, and metadata to configure image display. Images will display as greyscale unless you specify a custom colorscale.",
+                            upload_multiple=True,
+                        ),
+                        dcc.Loading(html.Div(id="output-image-layers-upload")),
+                    ],
+                    id="image-layers",
+                ),
+                html.Section(
+                    [
+                        ui.make_upload_card(
                             "Update scientific images",
                             [],
                             "sci-images",
@@ -393,6 +413,62 @@ def upload_volumetric_map(list_of_contents, filenames):
 
 
 @callback(
+    Output("image-layers-0-example-dl", "data"),
+    Input("image-layers-0-example", "n_clicks"),
+    prevent_initial_call=True,
+)
+def send_image_layers_example(n_clicks):
+    return dcc.send_file("examples/image-layers-metadata.xlsx")
+
+
+@callback(
+    Output("output-image-layers-upload", "children"),
+    Input("image-layers-upload", "contents"),
+    Input("image-layers-upload", "filename"),
+)
+def upload_image_layers(list_of_contents, filenames):
+    if list_of_contents is not None:
+        files_iter = [x for x in range(len(list_of_contents))]
+        # make sure downloads.xlsx gets processed first if included
+        if "image-layers-metadata.xlsx" in filenames:
+            # get index to use for contents and filenames
+            idx = filenames.index("image-layers-metadata.xlsx")
+            upload_succeeded = validate.process_content(
+                list_of_contents[idx],
+                filenames[idx],
+                "excel/vol",
+                validate.process_image_layer_data,
+                filenames[idx],
+            )
+            if not upload_succeeded[0]:
+                return alerts.send_toast(
+                    "Image layer data not uploaded", upload_succeeded[1], "failure"
+                )
+            # delete that index from files_iter so it doesn't get re-processed
+            files_iter.remove(idx)
+        if len(files_iter) > 0:
+            for i in files_iter:
+                upload_succeeded = validate.process_content(
+                    list_of_contents[i],
+                    filenames[i],
+                    "image",
+                    validate.process_image_layer_data,
+                    filenames[i],
+                )
+                if not upload_succeeded[0]:
+                    return alerts.send_toast(
+                        "Image layer data not uploaded",
+                        upload_succeeded[1],
+                        "failure",
+                    )
+        return alerts.send_toast(
+            "Image layer data uploaded",
+            "The files were uploaded successfully.",
+            "success",
+        )
+
+
+@callback(
     Output("output-sci-images-upload", "children"),
     Input("sci-images-upload", "contents"),
     Input("sci-images-upload", "filename"),
@@ -509,40 +585,39 @@ def update_reports_output(list_of_contents, filename):
     Input("volumetric-map-publish", "n_clicks"),
     Input("obj-files-publish", "n_clicks"),
     Input("reports-publish", "n_clicks"),
+    Input("image-layers-publish", "n_clicks"),
     prevent_initial_call=True,
 )
-def add_modal(title, si_block, sci_images, volumetric_map, obj_files, reports):
+def add_modal(
+    title, si_block, sci_images, volumetric_map, obj_files, reports, image_layers
+):
     button_clicked = ctx.triggered_id
+    end_sentences = [
+        "This change will be immediately visible to the public.",
+        "This change will be visible to the public once you restart the display app.",
+    ]
     publish_buttons = {
-        "title-publish": [
-            "title",
-            "Are you sure you want to update the title? This change will be immediately visible to the public.",
-        ],
+        "title-publish": ["title", "title", end_sentences[0]],
         "si-block-publish": [
             "si-block",
-            "Are you sure you want to update the tissue block and scientific metadata? This change will be immediately visible to the public.",
+            "tissue block and scientific metadata",
+            end_sentences[0],
         ],
-        "sci-images-publish": [
-            "sci-images",
-            "Are you sure you want to update the scientific images? This change will be visible to the public once you restart the display app.",
-        ],
+        "sci-images-publish": ["sci-images", "scientific images", end_sentences[1]],
         "volumetric-map-publish": [
             "volumetric-map",
-            "Are you sure you want to update the volumetric map data? This change will be immediately visible to the public.",
+            "volumetric map data",
+            end_sentences[0],
         ],
-        "obj-files-publish": [
-            "obj-files",
-            "Are you sure you want to update the 3D model files? This change will be immediately visible to the public.",
-        ],
-        "reports-publish": [
-            "reports",
-            "Are you sure you want to update the report links? You will need to restart the display app to see the changes.",
-        ],
+        "obj-files-publish": ["obj-files", "3D model files", end_sentences[0]],
+        "reports-publish": ["reports", "report links", end_sentences[1]],
+        "image-layers-publish": ["image-layers", "layered images", end_sentences[0]],
     }
 
     if button_clicked in publish_buttons:
         return ui.confirm_update_modal(
-            publish_buttons[button_clicked][1], publish_buttons[button_clicked][0]
+            f"Are you sure you want to update the {publish_buttons[button_clicked][1]}? {publish_buttons[button_clicked][2]}",
+            publish_buttons[button_clicked][0],
         )
     else:
         return no_update
@@ -558,6 +633,7 @@ def add_modal(title, si_block, sci_images, volumetric_map, obj_files, reports):
         Input("confirm-update-volumetric-map", "n_clicks"),
         Input("confirm-update-obj-files", "n_clicks"),
         Input("confirm-update-reports", "n_clicks"),
+        Input("confirm-update-image-layers", "n_clicks"),
         Input("cancel-update", "n_clicks"),
     ],
     [State("confirm-update-modal", "is_open"), State("title-input", "value")],
@@ -569,6 +645,7 @@ def toggle_modal(
     confirm_volumetric_map,
     confirm_obj_files,
     confirm_reports,
+    confirm_image_layers,
     cancel_update,
     is_open,
     value,
@@ -590,6 +667,9 @@ def toggle_modal(
         return not is_open, alerts.send_toast(results[0], results[1], results[2])
     elif confirm_reports:
         results = validate.publish_reports_file()
+        return not is_open, alerts.send_toast(results[0], results[1], results[2])
+    elif confirm_image_layers:
+        results = validate.publish_image_layer_data()
         return not is_open, alerts.send_toast(results[0], results[1], results[2])
     elif cancel_update:
         return not is_open, no_update

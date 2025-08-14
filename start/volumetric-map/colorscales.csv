@@ -1,0 +1,5 @@
+Entry,Scale Name,Scale Marker,R,G,B
+1,channel_split,0.0,255,0,0
+2,channel_split,0.67,0,0,255
+3,channel_split,0.99,0,255,0
+4,channel_split,1.0,255,255,255

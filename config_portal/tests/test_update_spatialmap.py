@@ -127,18 +127,22 @@ def test_make_cubes_df():
     pd.testing.assert_frame_equal(cubes_df, expected_cube_df, check_dtype=True)
 
 
-def test_check_downloads_xlsx():
+def test_check_catalog_xlsx():
     str1 = make_upload_content("/app/examples/downloads.xlsx")
     b1 = decode_str(str1)
-    validate.check_downloads_xlsx(b1, "downloads.xlsx")
+    validate.check_catalog_xlsx(
+        b1, FD["volumetric-map"]["downloads"]["depot"], "downloads"
+    )
     assert Path(FD["volumetric-map"]["downloads-file"]["depot"]).exists() is True
 
 
 def test_get_volumetric_map_folder():
     str1 = make_upload_content("/app/examples/downloads.xlsx")
     b1 = decode_str(str1)
-    validate.check_downloads_xlsx(b1, "/app/examples/downloads.xlsx")
-    assert validate.get_volumetric_map_folder("S1-12proteomics.xlsx") == (True, "S1-12")
+    validate.check_catalog_xlsx(b1, "/app/examples", "downloads")
+    assert validate.get_volumetric_map_folder(
+        "S1-12proteomics.xlsx", FD["volumetric-map"]["downloads-file"]["depot"]
+    ) == (True, "S1-12")
 
 
 def test_process_volumetric_map_data():
@@ -187,6 +191,79 @@ def test_process_volumetric_map_data():
     assert validate.process_volumetric_map_data(b6, "downloads.xlsx")[0] is False
     assert validate.process_volumetric_map_data(b7, "images-example.xlsx")[0] is False
     assert validate.process_volumetric_map_data(b8, "images-example.xlsx")[0] is False
+
+
+def test_convert_img_to_greyscale_array():
+    width = 500
+    height = 100
+    p = Path("/app/tests/test-files/volumetric-map/layers/S1-1-1_C00002.png")
+    img_arr = validate.convert_img_to_greyscale_array(p, (width, height))
+
+    assert img_arr.shape == (100, 500)
+    assert img_arr.min() == 0
+    assert img_arr.max() == 255
+    assert img_arr.dtype == "uint8"
+
+
+def test_process_image_layer_data():
+    # expect success
+    str1 = make_upload_content("/app/examples/image-layers-metadata.xlsx")
+    b1 = decode_str(str1)
+    str2 = make_upload_content(
+        "/app/tests/test-files/volumetric-map/layers/S1-12_L0.png"
+    )
+    b2 = decode_str(str2)
+
+    # expect failure
+    str3 = make_upload_content(
+        "/app/tests/test-files/volumetric-map/layers/S1-1-1_C00002.png"
+    )
+    b3 = decode_str(str3)
+    str4 = make_upload_content("/app/examples/images-example.xlsx")
+    b4 = decode_str(str4)
+    str5 = make_upload_content(
+        f"{FD['obj-files']['volumes']['publish']}/S1_Sphere_Lower_S1-1.obj"
+    )
+    b5 = decode_str(str5)
+
+    assert (
+        validate.process_image_layer_data(b1, "image-layers-metadata.xlsx")[0] is True
+    )
+    assert validate.process_image_layer_data(b2, "S1-12_L0.png")[0] is True
+    assert validate.process_image_layer_data(b3, "S1-1-1_C00002.png")[0] is False
+    assert validate.process_image_layer_data(b4, "images-example.xlsx")[0] is False
+    assert validate.process_image_layer_data(b5, "S1_Sphere_Lower_S1-1.obj")[0] is False
+
+
+def test_upload_image_layers():
+    # expect success
+    str1 = make_upload_content("/app/examples/image-layers-metadata.xlsx")
+    str2 = make_upload_content(
+        "/app/tests/test-files/volumetric-map/layers/S1-12_L0.png"
+    )
+
+    # expect failure
+    str3 = make_upload_content("/app/examples/images-example.xlsx")
+
+    result1 = json.loads(
+        json.dumps(
+            home.upload_image_layers(
+                [str1, str2], ["image-layers-metadata.xlsx", "S1-12_L0.png"]
+            ),
+            cls=plotly.utils.PlotlyJSONEncoder,
+        )
+    )
+    assert result1[0]["props"]["header_class_name"] == "text-success"
+
+    result2 = json.loads(
+        json.dumps(
+            home.upload_image_layers(
+                [str1, str3], ["image-layers-metadata.xlsx", "images-example.xlsx"]
+            ),
+            cls=plotly.utils.PlotlyJSONEncoder,
+        )
+    )
+    assert result2[0]["props"]["header_class_name"] == "text-danger"
 
 
 def test_upload_volumetric_map():
@@ -238,3 +315,27 @@ def test_publish_volumetric_map_data():
             Path(f"{FD['volumetric-map']['downloads']['publish']}/{dir.name}").exists()
             is True
         )
+
+
+def test_publish_image_layer_data():
+    str1 = make_upload_content("/app/examples/image-layers-metadata.xlsx")
+    b1 = decode_str(str1)
+    str2 = make_upload_content(
+        "/app/tests/test-files/volumetric-map/layers/S1-12_L0.png"
+    )
+    b2 = decode_str(str2)
+
+    validate.process_image_layer_data(b1, "image-layers-metadata.xlsx")
+    validate.process_image_layer_data(b2, "S1-12_L0.png")
+    validate.publish_image_layer_data()
+
+    img_dest = f"{FD['image-layer']['publish']}/S1-12/layers"
+    img_dest_path = Path(img_dest)
+    assert img_dest_path.exists() is True
+    img_names = [x.name for x in img_dest_path.iterdir()]
+    assert "S1-12_L0.txt" in img_names
+
+    metadata_dest_path = Path(FD["image-layer"]["publish"])
+    metadata_names = [y.name for y in metadata_dest_path.iterdir()]
+    assert "images.csv" in metadata_names
+    assert "colorscales.csv" in metadata_names
