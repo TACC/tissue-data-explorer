@@ -15,7 +15,7 @@ from collections.abc import Callable
 from pages.constants import FILE_DESTINATION as FD
 import cv2
 import numpy as np
-import sys
+
 
 MAX_TITLE_LENGTH = 2048
 MAX_FILENAME_LENGTH = 255
@@ -858,7 +858,6 @@ def check_catalog_xlsx(
     if not Path.exists(p):
         Path.mkdir(p, parents=True)
     if header_check[0]:
-        # print(header_check[2], file=sys.stdout, flush=True)
         for sheet_name in header_check[2].keys():
             df = update_entries(
                 f"{dest_folder}/{sheet_name}.csv",
@@ -1052,7 +1051,6 @@ def process_image_layer_data(file: bytes, filename: str) -> tuple[bool, str]:
     else:
         try:
             p = Path(f"{FD["image-layer"]["depot"]}")
-            # print([x for x in p.iterdir()])
             block = get_volumetric_map_folder(
                 filename, f"{FD["image-layer"]["depot"]}/images.csv"
             )

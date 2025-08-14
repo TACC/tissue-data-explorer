@@ -193,6 +193,18 @@ def test_process_volumetric_map_data():
     assert validate.process_volumetric_map_data(b8, "images-example.xlsx")[0] is False
 
 
+def test_convert_img_to_greyscale_array():
+    width = 500
+    height = 100
+    p = Path("/app/tests/test-files/volumetric-map/layers/S1-1-1_C00002.png")
+    img_arr = validate.convert_img_to_greyscale_array(p, (width, height))
+
+    assert img_arr.shape == (100, 500)
+    assert img_arr.min() == 0
+    assert img_arr.max() == 255
+    assert img_arr.dtype == "uint8"
+
+
 def test_process_image_layer_data():
     # expect success
     str1 = make_upload_content("/app/examples/image-layers-metadata.xlsx")

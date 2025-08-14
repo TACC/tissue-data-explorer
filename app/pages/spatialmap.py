@@ -13,11 +13,9 @@ from dash import (
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from PIL import Image
 from pages.constants import FILE_DESTINATION as FD
 from components import alerts
 import pages.ui as ui
-import sys
 
 app_logger = logging.getLogger(__name__)
 gunicorn_logger = logging.getLogger("gunicorn.error")
