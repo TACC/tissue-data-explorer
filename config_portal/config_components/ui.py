@@ -147,7 +147,7 @@ def make_upload_card(
             dl_row = dbc.Row(
                 row_contents,
                 align="center",
-                style={"height": f"{dl_height}px", "margin-top": "15px"},
+                style={"height": f"{dl_height}px", "marginTop": "15px"},
             )
         else:
             dl_row = dbc.Row(
