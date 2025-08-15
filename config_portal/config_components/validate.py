@@ -973,11 +973,20 @@ def check_volumetric_map_data_xlsx(file: bytes) -> tuple[bool, str]:
                 item.sort_values(by=["X Center", "Y Center", "Z Center"], inplace=True)
             item.to_csv(f"{loc}/{key}.csv", index=False)
         # create cubes csv
-        cubes_df = make_cubes_df(
-            header_check[2]["points_data"], header_check[2]["vol_measurements"]
-        )
-        cubes_df.to_csv(f"{loc}/cube_data.csv", index=False)
-        return True, ""
+        if (
+            header_check[2]["points_data"].size > 0
+            and header_check[2]["vol_measurements"].size > 0
+        ):
+            cubes_df = make_cubes_df(
+                header_check[2]["points_data"], header_check[2]["vol_measurements"]
+            )
+            cubes_df.to_csv(f"{loc}/cube_data.csv", index=False)
+            return True, ""
+        else:
+            return (
+                False,
+                "volumetric-map-data.xlsx must include points data and volume measurements.",
+            )
     else:
         return False, header_check[1]
 

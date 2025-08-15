@@ -165,19 +165,22 @@ volumetric_map_fig = dbc.Row(
 
 
 def get_image_info(block):
-    img_info = pd.read_csv(f"{FD["image-layer"]}/images.csv")
-    # filter to just the relevant block
-    img_info = img_info.loc[img_info["Block"] == block]
-    if img_info.size != 0:
-        img_info = img_info.sort_values(by=["Z Center"])
-    return img_info
+    try:
+        img_info = pd.read_csv(f"{FD["image-layer"]}/images.csv")
+        # filter to just the relevant block
+        img_info = img_info.loc[img_info["Block"] == block]
+        if img_info.size != 0:
+            img_info = img_info.sort_values(by=["Z Center"])
+        return img_info
+    except FileNotFoundError:
+        return False
 
 
 def make_volumetric_map_tab_content(block):
     tabs = []
     # find out if image layers have been loaded for this block
     image_info = get_image_info(block)
-    if image_info.size == 0:
+    if not image_info:
         tabs = [
             ("cube-tab", "Cube View"),
             ("point-tab", "Point View"),
