@@ -31,24 +31,9 @@ def set_nav(page):
                 ),
                 dbc.Collapse(
                     dbc.Nav(
-                        [
-                            dbc.NavItem(
-                                dbc.NavLink(
-                                    "All Data",
-                                    href="/",
-                                    class_name="text-light",
-                                )
-                            ),
-                            dbc.NavItem(
-                                dbc.NavLink(
-                                    "3D Model",
-                                    href="/3d",
-                                    class_name="text-light",
-                                )
-                            ),
-                        ],
+                        id="internal-links",
                         pills=True,
-                        horizontal="end",
+                        horizontal="start",
                         navbar=True,
                     ),
                     id="navbar-collapse",
@@ -76,9 +61,13 @@ def make_header(page):
                             [
                                 dbc.Col(
                                     [
-                                        html.Img(
-                                            src="../assets/magnifying-glass-chart-solid.svg",
-                                            className="text-light header-img",
+                                        dcc.Link(
+                                            html.Img(
+                                                src="../assets/magnifying-glass-chart-solid.svg",
+                                                className="text-light header-img",
+                                            ),
+                                            href="/",
+                                            className="title-link",
                                         ),
                                         html.H1(
                                             dcc.Link(

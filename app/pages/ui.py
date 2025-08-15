@@ -180,7 +180,7 @@ def make_volumetric_map_tab_content(block):
     tabs = []
     # find out if image layers have been loaded for this block
     image_info = get_image_info(block)
-    if not image_info:
+    if type(image_info) is not pd.DataFrame:
         tabs = [
             ("cube-tab", "Cube View"),
             ("point-tab", "Point View"),

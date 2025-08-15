@@ -49,6 +49,10 @@ p {
     padding-left: 20px;
 }
 
+.invisible {
+    visibility: hidden;
+}
+
 /* Alerts */
 
 .result-toast {
