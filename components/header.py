@@ -1,6 +1,6 @@
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import html
+from dash import html, dcc
 
 # This import is reported as incorrect in the editor, but is correct in the
 # Docker container because this folder is copied into each of the app folders
@@ -81,7 +81,11 @@ def make_header(page):
                                             className="text-light header-img",
                                         ),
                                         html.H1(
-                                            [page_title],
+                                            dcc.Link(
+                                                [page_title],
+                                                href="/",
+                                                className="title-link",
+                                            ),
                                             className="bg-primary text-light title",
                                         ),
                                     ],
