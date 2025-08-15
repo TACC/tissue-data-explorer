@@ -105,7 +105,10 @@ The script `run_tests.sh` in the root project folder creates docker containers f
 7. Clean up old images
 
    ```
-   docker image prune -a
+   docker rm -f $(docker ps -aq --filter "name=tissue-data-explorer")
+   docker rmi -f $(docker images -q --filter=reference='tissue-data-explorer*')
+   docker volume rm config-data-dev
+   docker builder prune
    ```
 
 ## Preparing images for display on the website
