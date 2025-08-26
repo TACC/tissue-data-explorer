@@ -14,12 +14,12 @@ Docker/ Docker Compose
 
 2. Add a `.env` file to the `config_portal` folder. See `.env.example` for format.
 
-3. Create a volume called `config-data-dev`. If you want to use the test data provided with this environment, populate the volume with the data from the `start` folder. Otherwise you can create an empty environment by populating the volume with the data from the `min` folder.
+3. Create a volume called `config-data-dev`. If you want to use the test data provided with this environment, populate the volume with the data from the `data/start` folder. Otherwise you can create an empty environment by populating the volume with the data from the `data/min` folder.
 
    ```
    docker volume create config-data-dev
    docker run -d --name temp -v config-data-dev:/data busybox sleep infinity
-   docker cp ./start/. temp:/data/
+   docker cp ./data/start/. temp:/data/
    docker stop temp
    docker rm temp
    ```
@@ -74,14 +74,14 @@ The script `run_tests.sh` in the root project folder creates docker containers f
    - update the variables in the image names with your username and the version tag
    - for the env_file setting in the config service, update the path of the .env file relative to the compose file. So, if you copied `docker-compose-prod.yaml` and `.env` into the same directory, the path for env_file should be `./.env`.
 
-5. Set up the shared volume. If you are starting from scratch, you can use the data in the `start` folder to see a demo version of the app.
+5. Set up the shared volume. If you are starting from scratch, you can use the data in the `data/start` folder to see a demo version of the app.
 
-   You can copy the `start` folder onto the production server and make the volume there:
+   You can copy the `data/start` folder onto the production server and make the volume there:
 
    ```
    docker volume create config-data
    docker run -d --name temp -v config-data:/data busybox sleep infinity
-   docker cp ./start/. temp:/data/
+   docker cp ./data/start/. temp:/data/
    docker stop temp
    docker rm temp
    ```
