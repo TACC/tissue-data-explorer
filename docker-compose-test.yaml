@@ -8,7 +8,7 @@ services:
       file: docker-compose-dev.yaml
       service: display-app
     volumes:
-    - config-data-test:/app/assets/config
+    - config-data-test:/home/nonroot/app/assets/config
   config:
     extends:
       file: docker-compose-dev.yaml

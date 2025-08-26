@@ -1,0 +1,109 @@
+FROM python:3.13-bookworm AS poetry
+RUN apt-get update && apt-get upgrade -y
+RUN pip install "poetry==1.8.4"
+WORKDIR /home/nonroot/app
+COPY ./pyproject.toml ./poetry.lock ./
+
+FROM poetry AS poetry-dev-display
+WORKDIR /home/nonroot/app
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --with=dev
+
+FROM python:3.13-bookworm AS dev-display
+ARG USERID
+ARG GROUPID
+RUN adduser --uid $USERID --gid $GROUPID --disabled-password --gecos "" nonroot
+RUN echo 'nonroot ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+USER nonroot
+WORKDIR /home/nonroot/app
+COPY --from=poetry-dev-display --chown=nonroot:nonroot /home/nonroot/app/requirements.txt .
+RUN chmod -R 755 /home/nonroot/app
+RUN pip install -r ./requirements.txt
+RUN pip install pytest pytest-cov
+ENV PATH="/home/nonroot/app:$PATH"
+ENTRYPOINT [ "python", "app.py" ]
+
+FROM poetry AS poetry-prod-display
+WORKDIR /home/nonroot/app
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
+
+FROM python:3.13-bookworm AS prod-display
+RUN apt-get update && apt-get upgrade -y && apt-get install -y python3
+ARG USERID
+ARG GROUPID
+RUN adduser --uid $USERID --gid $GROUPID --disabled-password --gecos "" nonroot
+RUN echo 'nonroot ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+USER nonroot
+WORKDIR /home/nonroot/app
+COPY --from=poetry-prod-display --chown=nonroot:nonroot /home/nonroot/app/requirements.txt .
+RUN chmod -R 755 /home/nonroot/app
+RUN pip install -r ./requirements.txt
+COPY ./app/app.py \
+     ./app/gunicorn_conf.py \
+     ./
+COPY ./app/assets \
+     ./assets
+COPY ./app/pages \
+     ./pages
+COPY ./components \
+     ./components
+COPY ./styles \
+     ./assets/styles
+ENV PATH="/home/nonroot/app:/home/nonroot/.local/bin:$PATH"
+ENV PORT=8050
+EXPOSE 8050
+ENTRYPOINT ["gunicorn", "-c", "gunicorn_conf.py", "app:server"]
+
+FROM poetry AS poetry-dev-config
+WORKDIR /home/nonroot/app
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --with=dev --with=config
+
+FROM python:3.13-bookworm AS dev-config
+ARG USERID
+ARG GROUPID
+RUN adduser --uid $USERID --gid $GROUPID --disabled-password --gecos "" nonroot
+RUN echo 'nonroot ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+WORKDIR /home/nonroot/app
+RUN apt-get update && apt-get install python3 ffmpeg libsm6 libxext6  -y
+COPY --from=poetry-dev-config /home/nonroot/app/requirements.txt .
+RUN pip install -r ./requirements.txt
+RUN pip install pytest pytest-cov
+ENV PATH="/home/nonroot/app:$PATH"
+ENV PORT=8040
+EXPOSE 8040
+ENTRYPOINT [ "python", "app.py" ]
+
+FROM poetry AS poetry-prod-config
+WORKDIR /home/nonroot/app
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --with=config
+
+FROM python:3.13-bookworm AS prod-config
+RUN apt-get update && apt-get install python3 ffmpeg libsm6 libxext6  -y
+ARG USERID
+ARG GROUPID
+RUN adduser --uid $USERID --gid $GROUPID --disabled-password --gecos "" nonroot
+RUN echo 'nonroot ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+USER nonroot
+WORKDIR /home/nonroot/app
+RUN chmod -R 755 /home/nonroot/app
+COPY --from=poetry-prod-config /home/nonroot/app/requirements.txt .
+RUN pip install -r ./requirements.txt
+RUN pip install pytest pytest-cov
+COPY ./config_portal/app.py \
+     ./config_portal/gunicorn_conf.py \
+     ./
+COPY ./config_portal/assets \
+     ./assets
+COPY ./config_portal/config_components \
+     ./config_components
+COPY ./config_portal/pages \
+     ./pages
+COPY ./components \
+     ./components
+COPY ./config_portal/examples \
+     ./examples
+COPY ./styles \
+     ./assets/styles
+ENV PATH="/home/nonroot/app:/home/nonroot/.local/bin:$PATH"
+ENV PORT=8040
+EXPOSE 8040
+ENTRYPOINT ["gunicorn", "-c", "gunicorn_conf.py", "app:server"]

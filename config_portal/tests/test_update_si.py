@@ -54,7 +54,7 @@ def test_process_sci_image():
         f"{FD["sci-images"]["publish"]}/S1-1/S1-1-1/S1-1-1_C00000.png"
     )
     b1 = decode_str(str1)
-    str2 = make_upload_content("/app/examples/images-example.xlsx")
+    str2 = make_upload_content("/home/nonroot/app/examples/images-example.xlsx")
     b2 = decode_str(str2)
 
     assert validate.process_sci_image(b1, "S1-1-1_C00000.png")[0] is True
@@ -69,7 +69,7 @@ def test_upload_sci_images():
     str1 = make_upload_content(
         f"{FD["sci-images"]["publish"]}/S1-1/S1-1-1/S1-1-1_C00000.png"
     )
-    str2 = make_upload_content("/app/examples/images-example.xlsx")
+    str2 = make_upload_content("/home/nonroot/app/examples/images-example.xlsx")
 
     # expect success
     result1 = json.loads(

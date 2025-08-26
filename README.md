@@ -27,13 +27,13 @@ Docker/ Docker Compose
 4. Build the image
 
    ```
-   docker compose -f docker-compose-dev.yaml build
+   USERID=${UID} GROUPID=${GID} docker compose -f docker-compose-dev.yaml build
    ```
 
 5. Run the image
 
    ```
-   docker compose -f docker-compose-dev.yaml up
+   USERID=${UID} GROUPID=${GID} docker compose -f docker-compose-dev.yaml up
    ```
 
    Running the image starts the display app at `localhost:8050` and the config app at `localhost:8040`.
@@ -51,7 +51,7 @@ The script `run_tests.sh` in the root project folder creates docker containers f
 1. On a machine with this project's GitHub repo, build the images. You may need to update the platforms specified in `docker-compose.yaml` to fit the platform of your production server. See the Docker Compose [documentation](https://docs.docker.com/reference/compose-file/build/#platforms) for more information.
 
    ```
-   docker compose -f docker-compose.yaml build
+   USERID=${UID} GROUPID=${GID} docker compose -f docker-compose.yaml build
    ```
 
 2. Replace the variables in the code snippet below with your username and the appropriate version tag and run the commands to publish the images to Docker Hub
@@ -99,7 +99,7 @@ The script `run_tests.sh` in the root project folder creates docker containers f
 6. Run the image.
 
    ```
-   docker compose -f docker-compose-prod.yaml up
+   USERID=${UID} GROUPID=${GID} docker compose -f docker-compose-prod.yaml up
    ```
 
 7. Clean up old images

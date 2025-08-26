@@ -5,7 +5,11 @@ services:
   display:
     build:
       context: .
-      dockerfile: "./app/Dockerfile"
+      dockerfile: "./Dockerfile-all"
+      target: prod-display
+      args:
+        USERID: ${USERID}
+        GROUPID: ${GROUPID}
       platforms: 
         - "linux/amd64"
         - "linux/arm64"
@@ -15,11 +19,15 @@ services:
     tty: true
     restart: on-failure:5
     volumes:
-      - config-data:/app/assets/config
+      - config-data:/home/nonroot/app/assets/config
   config:
     build:
       context: .
-      dockerfile: "./config_portal/Dockerfile-config"
+      dockerfile: "./Dockerfile-all"
+      target: prod-config
+      args:
+        USERID: ${USERID}
+        GROUPID: ${GROUPID}
       platforms: 
         - "linux/amd64"
         - "linux/arm64"

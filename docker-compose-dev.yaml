@@ -5,7 +5,11 @@ services:
   config-app:
     build:
       context: .
-      dockerfile: "./config_portal/Dockerfile-dev-config"
+      dockerfile: "./Dockerfile-all"
+      target: dev-config
+      args:
+        USERID: ${USERID}
+        GROUPID: ${GROUPID}
     ports:
       - "8040:8040"
     expose:
@@ -13,18 +17,22 @@ services:
     volumes:
       - type: bind
         source: ./config_portal
-        target: /app
+        target: /home/nonroot/app
       - type: bind
         source: ./components
-        target: /app/components
+        target: /home/nonroot/app/components
       - type: bind
         source: ./styles
-        target: /app/assets/styles
+        target: /home/nonroot/app/assets/styles
       - config-data-dev:/config
   display-app:
     build: 
       context: .
-      dockerfile: "./app/Dockerfile-dev-dash"
+      dockerfile: "./Dockerfile-all"
+      target: dev-display
+      args:
+        USERID: ${USERID}
+        GROUPID: ${GROUPID}
     ports:
       - "8050:8050"
     expose:
@@ -34,14 +42,14 @@ services:
     volumes:
       - type: bind
         source: ./app
-        target: /app
+        target: /home/nonroot/app
       - type: bind
         source: ./components
-        target: /app/components
+        target: /home/nonroot/app/components
       - type: bind
         source: ./styles
-        target: /app/assets/styles
-      - config-data-dev:/app/assets/config
+        target: /home/nonroot/app/assets/styles
+      - config-data-dev:/home/nonroot/app/assets/config
 volumes:
   config-data-dev:
     external: true

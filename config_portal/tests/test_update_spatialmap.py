@@ -128,7 +128,7 @@ def test_make_cubes_df():
 
 
 def test_check_catalog_xlsx():
-    str1 = make_upload_content("/app/examples/downloads.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/downloads.xlsx")
     b1 = decode_str(str1)
     validate.check_catalog_xlsx(
         b1, FD["volumetric-map"]["downloads"]["depot"], "downloads"
@@ -137,9 +137,9 @@ def test_check_catalog_xlsx():
 
 
 def test_get_volumetric_map_folder():
-    str1 = make_upload_content("/app/examples/downloads.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/downloads.xlsx")
     b1 = decode_str(str1)
-    validate.check_catalog_xlsx(b1, "/app/examples", "downloads")
+    validate.check_catalog_xlsx(b1, "/home/nonroot/app/examples", "downloads")
     assert validate.get_volumetric_map_folder(
         "S1-12proteomics.xlsx", FD["volumetric-map"]["downloads-file"]["depot"]
     ) == (True, "S1-12")
@@ -147,9 +147,9 @@ def test_get_volumetric_map_folder():
 
 def test_process_volumetric_map_data():
     # expect success
-    str1 = make_upload_content("/app/examples/volumetric-map-data.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/volumetric-map-data.xlsx")
     b1 = decode_str(str1)
-    str2 = make_upload_content("/app/examples/downloads.xlsx")
+    str2 = make_upload_content("/home/nonroot/app/examples/downloads.xlsx")
     b2 = decode_str(str2)
     str3 = make_upload_content(
         f"{FD['volumetric-map']['downloads']['publish']}/S1-12/S1-12proteomics.xlsx"
@@ -158,18 +158,18 @@ def test_process_volumetric_map_data():
 
     # expect failure
     str4 = make_upload_content(
-        "/app/tests/test-files/volumetric-map/bad-headers/volumetric-map-data.xlsx"
+        "/home/nonroot/app/tests/test-files/volumetric-map/bad-headers/volumetric-map-data.xlsx"
     )
     b4 = decode_str(str4)
     str5 = make_upload_content(
-        "/app/tests/test-files/volumetric-map/bad-workbook/volumetric-map-data.xlsx"
+        "/home/nonroot/app/tests/test-files/volumetric-map/bad-workbook/volumetric-map-data.xlsx"
     )
     b5 = decode_str(str5)
     str6 = make_upload_content(
-        "/app/tests/test-files/downloads/bad-headers/downloads.xlsx"
+        "/home/nonroot/app/tests/test-files/downloads/bad-headers/downloads.xlsx"
     )
     b6 = decode_str(str6)
-    str7 = make_upload_content("/app/examples/images-example.xlsx")
+    str7 = make_upload_content("/home/nonroot/app/examples/images-example.xlsx")
     b7 = decode_str(str7)
     str8 = make_upload_content(
         f"{FD['obj-files']['volumes']['publish']}/S1_Sphere_Lower_S1-1.obj"
@@ -196,7 +196,9 @@ def test_process_volumetric_map_data():
 def test_convert_img_to_greyscale_array():
     width = 500
     height = 100
-    p = Path("/app/tests/test-files/volumetric-map/layers/S1-1-1_C00002.png")
+    p = Path(
+        "/home/nonroot/app/tests/test-files/volumetric-map/layers/S1-1-1_C00002.png"
+    )
     img_arr = validate.convert_img_to_greyscale_array(p, (width, height))
 
     assert img_arr.shape == (100, 500)
@@ -207,19 +209,19 @@ def test_convert_img_to_greyscale_array():
 
 def test_process_image_layer_data():
     # expect success
-    str1 = make_upload_content("/app/examples/image-layers-metadata.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/image-layers-metadata.xlsx")
     b1 = decode_str(str1)
     str2 = make_upload_content(
-        "/app/tests/test-files/volumetric-map/layers/S1-12_L0.png"
+        "/home/nonroot/app/tests/test-files/volumetric-map/layers/S1-12_L0.png"
     )
     b2 = decode_str(str2)
 
     # expect failure
     str3 = make_upload_content(
-        "/app/tests/test-files/volumetric-map/layers/S1-1-1_C00002.png"
+        "/home/nonroot/app/tests/test-files/volumetric-map/layers/S1-1-1_C00002.png"
     )
     b3 = decode_str(str3)
-    str4 = make_upload_content("/app/examples/images-example.xlsx")
+    str4 = make_upload_content("/home/nonroot/app/examples/images-example.xlsx")
     b4 = decode_str(str4)
     str5 = make_upload_content(
         f"{FD['obj-files']['volumes']['publish']}/S1_Sphere_Lower_S1-1.obj"
@@ -237,13 +239,13 @@ def test_process_image_layer_data():
 
 def test_upload_image_layers():
     # expect success
-    str1 = make_upload_content("/app/examples/image-layers-metadata.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/image-layers-metadata.xlsx")
     str2 = make_upload_content(
-        "/app/tests/test-files/volumetric-map/layers/S1-12_L0.png"
+        "/home/nonroot/app/tests/test-files/volumetric-map/layers/S1-12_L0.png"
     )
 
     # expect failure
-    str3 = make_upload_content("/app/examples/images-example.xlsx")
+    str3 = make_upload_content("/home/nonroot/app/examples/images-example.xlsx")
 
     result1 = json.loads(
         json.dumps(
@@ -268,11 +270,11 @@ def test_upload_image_layers():
 
 def test_upload_volumetric_map():
     # expect success
-    str1 = make_upload_content("/app/examples/volumetric-map-data.xlsx")
-    str2 = make_upload_content("/app/examples/downloads.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/volumetric-map-data.xlsx")
+    str2 = make_upload_content("/home/nonroot/app/examples/downloads.xlsx")
 
     # expect failure
-    str3 = make_upload_content("/app/examples/images-example.xlsx")
+    str3 = make_upload_content("/home/nonroot/app/examples/images-example.xlsx")
 
     result1 = json.loads(
         json.dumps(
@@ -318,10 +320,10 @@ def test_publish_volumetric_map_data():
 
 
 def test_publish_image_layer_data():
-    str1 = make_upload_content("/app/examples/image-layers-metadata.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/image-layers-metadata.xlsx")
     b1 = decode_str(str1)
     str2 = make_upload_content(
-        "/app/tests/test-files/volumetric-map/layers/S1-12_L0.png"
+        "/home/nonroot/app/tests/test-files/volumetric-map/layers/S1-12_L0.png"
     )
     b2 = decode_str(str2)
 

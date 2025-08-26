@@ -1,6 +1,5 @@
 import logging
 import pandas as pd
-import numpy as np
 from dash import register_page
 from pages.constants import FILE_DESTINATION as FD
 from pages.ui import make_summary_grids
@@ -42,7 +41,7 @@ def layout(**kwargs):
             "failure",
         )
 
-    if len(organs) == 0 or np.isnan(organs).all():
+    if len(organs) == 0 or pd.isna(organs).all():
         return alerts.send_toast(
             "Cannot load page",
             "Missing required configuration, please contact an administrator to resolve the issue.",

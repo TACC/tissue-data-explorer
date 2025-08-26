@@ -22,7 +22,7 @@ def dummy_function(file: bytes, which_headers: str) -> tuple[bool, str]:
 
 
 def test_process_si_block_file():
-    str1 = make_upload_content("/app/examples/images-example.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/images-example.xlsx")
     b1 = decode_str(str1)
     assert validate.process_si_block_file(b1, "si-block") == (True, "")
 
@@ -37,7 +37,7 @@ def test_process_si_block_file():
     assert si_files.shape[0] == 6
 
     # check failure condition
-    str2 = make_upload_content("/app/examples/downloads.xlsx")
+    str2 = make_upload_content("/home/nonroot/app/examples/downloads.xlsx")
     b2 = decode_str(str2)
 
     assert validate.process_si_block_file(b2, "si-block") == (
@@ -51,13 +51,13 @@ def test_process_si_block_file():
 
 
 def test_check_excel_headers():
-    str1 = make_upload_content("/app/examples/images-example.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/images-example.xlsx")
     b1 = decode_str(str1)
-    str2 = make_upload_content("/app/examples/downloads.xlsx")
+    str2 = make_upload_content("/home/nonroot/app/examples/downloads.xlsx")
     b2 = decode_str(str2)
-    str3 = make_upload_content("/app/examples/volumetric-map-data.xlsx")
+    str3 = make_upload_content("/home/nonroot/app/examples/volumetric-map-data.xlsx")
     b3 = decode_str(str3)
-    str4 = make_upload_content("/app/examples/obj-files.xlsx")
+    str4 = make_upload_content("/home/nonroot/app/examples/obj-files.xlsx")
     b4 = decode_str(str4)
 
     assert validate.check_excel_headers(b1, "si-block")[0] is True
@@ -179,8 +179,8 @@ def test_publish_si_block():
 
 
 def test_update_si_block_output():
-    str1 = make_upload_content("/app/examples/images-example.xlsx")
-    str2 = make_upload_content("/app/examples/downloads.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/images-example.xlsx")
+    str2 = make_upload_content("/home/nonroot/app/examples/downloads.xlsx")
 
     # expect success
     result1 = json.loads(
@@ -207,7 +207,7 @@ def test_update_si_block_output():
 
 def test_process_content():
     # make content strings
-    str1 = make_upload_content("/app/examples/downloads.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/downloads.xlsx")
     str2 = make_upload_content(
         f"{FD['obj-files']['volumes']['publish']}/S1_Sphere_Lower_S1-1.obj"
     )
@@ -229,7 +229,7 @@ def test_process_content():
 
 
 def test_check_file_type():
-    str1 = make_upload_content("/app/examples/downloads.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/downloads.xlsx")
     str2 = make_upload_content(
         f"{FD['obj-files']['volumes']['publish']}/S1_Sphere_Lower_S1-1.obj"
     )
