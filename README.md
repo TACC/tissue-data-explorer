@@ -14,29 +14,19 @@ Docker/ Docker Compose
 
 2. Add a `.env` file to the `config_portal` folder. See `.env.example` for format.
 
-3. Create a volume called `config-data-dev`. If you want to use the test data provided with this environment, populate the volume with the data from the `data/start` folder. Otherwise you can create an empty environment by populating the volume with the data from the `data/min` folder.
-
+3. Use the script `./build.sh` to build a development environment. If this is your first time building a development environment, you will need to create a new volume for use with the environment by providing the `-n` option to the program. The default behavior is to populate your new volume with some test data: 
    ```
-   docker volume create config-data-dev
-   docker run -d --name temp -v config-data-dev:/data busybox sleep infinity
-   docker cp ./data/start/. temp:/data/
-   docker stop temp
-   docker rm temp
+   ./build.sh -n
    ```
 
-4. Build the image
-
+   Or, if you would prefer to use a minimum dataset, you can specify that by providing the value `min` to the `-d` option. 
    ```
-   USERID=${UID} GROUPID=${GID} docker compose -f docker-compose-dev.yaml build
-   ```
-
-5. Run the image
-
-   ```
-   USERID=${UID} GROUPID=${GID} docker compose -f docker-compose-dev.yaml up
+   ./build.sh -n -d min
    ```
 
-   Running the image starts the display app at `localhost:8050` and the config app at `localhost:8040`.
+   You can also specify a custom volume name using the `-v` option. 
+
+   Running the script builds the apps and starts the display app at `localhost:8050` and the config app at `localhost:8040`.
 
 
 ## Running tests locally
@@ -48,18 +38,20 @@ The script `run_tests.sh` in the root project folder creates docker containers f
 
 ## Preparing the production image
 
-1. On a machine with this project's GitHub repo, build the images. You may need to update the platforms specified in `docker-compose.yaml` to fit the platform of your production server. See the Docker Compose [documentation](https://docs.docker.com/reference/compose-file/build/#platforms) for more information.
+1. On a machine with this project's GitHub repo, build the images. The build script as currently configured will create the production build for the `linux/amd64` and `linux/arm64` platforms. If neither of those platforms meet your needs, then you will need to update the platforms specified in `docker-compose.yaml` to fit the platform of your production server. See the Docker Compose [documentation](https://docs.docker.com/reference/compose-file/build/#platforms) for more information.
+
+   Providing the value `prod` to the `-d` option of the build script will trigger a production build. You can specify a custom volume using the `-v` option as well.
 
    ```
-   USERID=${UID} GROUPID=${GID} docker compose -f docker-compose.yaml build
+   ./build.sh -e prod
    ```
 
 2. Replace the variables in the code snippet below with your username and the appropriate version tag and run the commands to publish the images to Docker Hub
 
    ```
-   docker tag tissue-data-explorer-display {username}/tissue-data-explorer-display:{tag}
+   docker tag tde-prod-display {username}/tissue-data-explorer-display:{tag}
    docker push {username}/tissue-data-explorer-display:{tag}
-   docker tag tissue-data-explorer-config {username}/tissue-data-explorer-config:{tag}
+   docker tag tde-prod-config {username}/tissue-data-explorer-config:{tag}
    docker push {username}/tissue-data-explorer-config:{tag}
    ```
 
@@ -74,19 +66,15 @@ The script `run_tests.sh` in the root project folder creates docker containers f
    - update the variables in the image names with your username and the version tag
    - for the env_file setting in the config service, update the path of the .env file relative to the compose file. So, if you copied `docker-compose-prod.yaml` and `.env` into the same directory, the path for env_file should be `./.env`.
 
-5. Set up the shared volume. If you are starting from scratch, you can use the data in the `data/start` folder to see a demo version of the app.
+5. Set up the shared volume. You can use the `./build/create_volume.sh` script to do this. If you are starting from scratch, you can use the data in the `data/start` folder to see a demo version of the app.
 
-   You can copy the `data/start` folder onto the production server and make the volume there:
+   You can copy the `data/start` folder and the `./build/create_volume.sh` script onto the production server and make the volume there. You must provide the name of the volume you want to create as well as the path to the source dataset as inputs to `./build/create_volume.sh` in that order:
 
    ```
-   docker volume create config-data
-   docker run -d --name temp -v config-data:/data busybox sleep infinity
-   docker cp ./data/start/. temp:/data/
-   docker stop temp
-   docker rm temp
+   ./build/create_volume.sh config-data-prod ./data/start
    ```
 
-   Alternatively, you can make the volume on another machine using the above steps, then publish it to Docker Hub and pull it onto the production server.
+   Alternatively, if the volume is not too large, you can make the volume on another machine using the above steps, then publish it to Docker Hub and pull it onto the production server.
       1. Export the volume by opening Docker Desktop, opening the volume, clicking on "Quick export", then choosing the "Registry" option under "Local or Hub storage".
       2. On the production server, create the new volume, pull the volume image from Docker Hub, run it, and copy the data into the volume on the production server.
       ```
@@ -102,14 +90,7 @@ The script `run_tests.sh` in the root project folder creates docker containers f
    USERID=${UID} GROUPID=${GID} docker compose -f docker-compose-prod.yaml up
    ```
 
-7. Clean up old images
-
-   ```
-   docker rm -f $(docker ps -aq --filter "name=tissue-data-explorer")
-   docker rmi -f $(docker images -q --filter=reference='tissue-data-explorer*')
-   docker volume rm config-data-dev
-   docker builder prune
-   ```
+7. Clean up old images by running the `./build/clean_images.sh` script. This script will remove all containers and images with "tde-" in the name, then clean the Docker build cache.
 
 ## Preparing images for display on the website
 See `scripts\image_prep.md` folder for more information about how to prepare images for display on the website. 

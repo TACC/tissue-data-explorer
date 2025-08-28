@@ -1,44 +1,11 @@
-# This compose file is intended for use in a development environment.
-# It includes test suites and bind mounts so containers will use latest code updates.
+# This compose file prepares a development image of the software using bind mounts.
 
+name: tde-dev
 services:
-  config-app:
-    build:
-      context: .
-      dockerfile: "./Dockerfile-all"
-      target: dev-config
-      args:
-        USERID: ${USERID}
-        GROUPID: ${GROUPID}
-    ports:
-      - "8040:8040"
-    expose:
-      - "8040"
-    volumes:
-      - type: bind
-        source: ./config_portal
-        target: /home/nonroot/app
-      - type: bind
-        source: ./components
-        target: /home/nonroot/app/components
-      - type: bind
-        source: ./styles
-        target: /home/nonroot/app/assets/styles
-      - config-data-dev:/config
-  display-app:
-    build: 
-      context: .
-      dockerfile: "./Dockerfile-all"
-      target: dev-display
-      args:
-        USERID: ${USERID}
-        GROUPID: ${GROUPID}
-    ports:
-      - "8050:8050"
-    expose:
-      - "8050"
-    stdin_open: true
-    tty: true
+  display:
+    extends:
+      file: docker-compose.yaml
+      service: display
     volumes:
       - type: bind
         source: ./app
@@ -50,6 +17,22 @@ services:
         source: ./styles
         target: /home/nonroot/app/assets/styles
       - config-data-dev:/home/nonroot/app/assets/config
+  config:
+    extends:
+      file: docker-compose.yaml
+      service: config
+    volumes:
+      - type: bind
+        source: ./config_portal
+        target: /home/nonroot/app
+      - type: bind
+        source: ./components
+        target: /home/nonroot/app/components
+      - type: bind
+        source: ./styles
+        target: /home/nonroot/app/assets/styles
+      - config-data-dev:/config
 volumes:
   config-data-dev:
     external: true
+    name: ${VOLUME:-config-data-dev}
