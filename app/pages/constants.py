@@ -1,18 +1,18 @@
 FILE_DESTINATION = {
     "si-block": {
-        "block-data": "/app/assets/config/blocks.csv",
-        "si-files": "/app/assets/config/image-sets.csv",
+        "block-data": "/home/nonroot/app/assets/config/blocks.csv",
+        "si-files": "/home/nonroot/app/assets/config/image-sets.csv",
     },
-    "volumetric-map": "/app/assets/config/volumetric-map",
-    "image-layer": "/app/assets/config/volumetric-map",
+    "volumetric-map": "/home/nonroot/app/assets/config/volumetric-map",
+    "image-layer": "/home/nonroot/app/assets/config/volumetric-map",
     "obj-files": {
-        "summary": "/app/assets/config/obj",
-        "volumes": "/app/assets/config/obj/volumes",
+        "summary": "/home/nonroot/app/assets/config/obj",
+        "volumes": "/home/nonroot/app/assets/config/obj/volumes",
     },
-    "sci-images": "/app/assets/config/scientific-images",
+    "sci-images": "/home/nonroot/app/assets/config/scientific-images",
     "thumbnails": {
-        "catalog": "/app/assets/config/scientific-images/thumbnails/thumbnails.csv",
+        "catalog": "/home/nonroot/app/assets/config/scientific-images/thumbnails/thumbnails.csv",
     },
-    "title": {"publish": "/app/assets/config/labels.csv"},
-    "reports": {"publish": "/app/assets/config/reports.csv"},
+    "title": {"publish": "/home/nonroot/app/assets/config/labels.csv"},
+    "reports": {"publish": "/home/nonroot/app/assets/config/reports.csv"},
 }

@@ -16,6 +16,7 @@ from pathlib import Path
 from pages.constants import FILE_DESTINATION as FD
 from components import alerts
 import pages.ui as ui
+import traceback
 
 app_logger = logging.getLogger(__name__)
 gunicorn_logger = logging.getLogger("gunicorn.error")
@@ -113,6 +114,17 @@ def get_colorscale(scale: str) -> list:
         return None
 
 
+def load_image_layers(block):
+    # image layers are optional
+    try:
+        image_layers_df = pd.read_csv(f"{FD["image-layer"]}/images.csv")
+        # Make image layers dict
+        image_layers = make_image_layers(image_layers_df, block)
+    except FileNotFoundError:
+        image_layers = ["All"]
+    return image_layers
+
+
 def load_data(block: str) -> tuple[dict, dict, list, list, list, dict]:
     # page info dict, defaults dict, layers, category options, values, axes
     dir = f"{FD['volumetric-map']}/{block}"
@@ -121,34 +133,35 @@ def load_data(block: str) -> tuple[dict, dict, list, list, list, dict]:
     category_labels = pd.read_csv(f"{dir}/category_labels.csv")
     vol_measurements = pd.read_csv(f"{dir}/vol_measurements.csv")
     downloads = pd.read_csv(f"{FD['volumetric-map']}/downloads.csv")
-    image_layers_df = pd.read_csv(f"{FD["image-layer"]}/images.csv")
 
     # Get title and desc
+    if meta.size < 1:
+        raise ValueError("page metadata")
     page_info = meta.iloc[0].to_dict()
 
     # Make defaults dict
     defaults = make_defaults(value_ranges)
 
     # Get axes
+    if vol_measurements.size < 1:
+        raise ValueError("volume measurements")
     axes = make_axes(vol_measurements)
 
     # Make layers list
     layers = make_layers(axes["Z"])
 
-    # Make image layers dict
-    image_layers = make_image_layers(image_layers_df, block)
-
     # make category options
     category_opts = category_labels.iloc[0].to_dict()
 
     # get value labels and min/maxes
+    if value_ranges.size < 1:
+        raise ValueError("value ranges")
     value_info = value_ranges.iloc[0:2].to_dict()
 
     return (
         page_info,
         defaults,
         layers,
-        image_layers,
         category_opts,
         value_info,
         axes,
@@ -162,7 +175,6 @@ def layout(block=None, **kwargs):
             page_info,
             defaults,
             layers,
-            image_layers,
             category_opts,
             value_info,
             axes,
@@ -174,6 +186,14 @@ def layout(block=None, **kwargs):
             "Missing required configuration, please contact an administrator to resolve the issue.",
             "failure",
         )
+    except ValueError as err:
+        return alerts.send_toast(
+            "Cannot load page",
+            f"Missing required configuration: {err}. Please contact an administrator to resolve the issue.",
+            "failure",
+        )
+
+    image_layers = load_image_layers(block)
 
     values = list(value_info.keys())
     category_opts["Selected"] = defaults["d_category"]
@@ -386,11 +406,19 @@ def update_fig(
     for key in settings.keys():
         if props[key] is not None:
             settings[key] = props[key]
-    value_ranges = (value_range_dict[value]["Min"], value_range_dict[value]["Max"])
+    try:
+        value_ranges = (value_range_dict[value]["Min"], value_range_dict[value]["Max"])
+    except ValueError:
+        return alerts.send_toast(
+            "Cannot load page",
+            "Missing required configuration: value ranges, please contact an administrator to resolve the issue.",
+            "failure",
+        )
     if tab == "cube-tab":
         try:
             df = pd.read_csv(f"{FD['volumetric-map']}/{block}/cube_data.csv")
         except FileNotFoundError:
+            app_logger.debug(traceback.print_exc())
             return alerts.send_toast(
                 "Cannot load page",
                 "Missing required configuration, please contact an administrator to resolve the issue.",
@@ -412,6 +440,7 @@ def update_fig(
         try:
             df = pd.read_csv(f"{FD['volumetric-map']}/{block}/cube_data.csv")
         except FileNotFoundError:
+            app_logger.debug(traceback.print_exc())
             return alerts.send_toast(
                 "Cannot load page",
                 "Missing required configuration, please contact an administrator to resolve the issue.",
@@ -441,6 +470,7 @@ def update_fig(
         try:
             df = pd.read_csv(f"{FD['volumetric-map']}/{block}/points_data.csv")
         except FileNotFoundError:
+            app_logger.debug(traceback.print_exc())
             return alerts.send_toast(
                 "Cannot load page",
                 "Missing required configuration, please contact an administrator to resolve the issue.",
@@ -459,6 +489,7 @@ def update_fig(
         try:
             df = pd.read_csv(f"{FD['volumetric-map']}/{block}/points_data.csv")
         except FileNotFoundError:
+            app_logger.debug(traceback.print_exc())
             return alerts.send_toast(
                 "Cannot load page",
                 "Missing required configuration, please contact an administrator to resolve the issue.",
@@ -489,6 +520,7 @@ def update_fig(
         try:
             df = pd.read_csv(f"{FD['volumetric-map']}/{block}/points_data.csv")
         except FileNotFoundError:
+            app_logger.debug(traceback.print_exc())
             return alerts.send_toast(
                 "Cannot load page",
                 "Missing required configuration, please contact an administrator to resolve the issue.",
@@ -516,6 +548,7 @@ def display_output(n_clicks, id):
     try:
         downloads = pd.read_csv(f"{FD['volumetric-map']}/downloads.csv")
     except FileNotFoundError:
+        app_logger.debug(traceback.print_exc())
         return alerts.send_toast(
             "Cannot load page",
             "Missing required configuration, please contact an administrator to resolve the issue.",

@@ -1,8 +1,9 @@
 import logging
 import pandas as pd
-from dash import html, register_page
+from dash import register_page
 from pages.constants import FILE_DESTINATION as FD
 from pages.ui import make_summary_grids
+from components import alerts
 
 app_logger = logging.getLogger(__name__)
 gunicorn_logger = logging.getLogger("gunicorn.error")
@@ -31,9 +32,21 @@ def layout(**kwargs):
     reports = get_reports()
     app_logger.debug(f"Data columns imported for report link list:\n{reports.columns}")
 
-    organs = reports["Organ ID"].unique()
-    if len(organs) == 0:
-        return html.Div("No dataset metadata has been loaded.")
+    try:
+        organs = reports["Organ ID"].unique()
+    except KeyError:
+        return alerts.send_toast(
+            "Cannot load page",
+            "Missing required configuration, please contact an administrator to resolve the issue.",
+            "failure",
+        )
+
+    if len(organs) == 0 or pd.isna(organs).all():
+        return alerts.send_toast(
+            "Cannot load page",
+            "Missing required configuration, please contact an administrator to resolve the issue.",
+            "failure",
+        )
 
     columns = [
         {"field": "Name", "flex": 3},

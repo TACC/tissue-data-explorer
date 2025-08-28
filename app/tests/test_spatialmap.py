@@ -11,6 +11,7 @@ from pages.spatialmap import (
     make_defaults,
     make_axes,
     make_layers,
+    load_image_layers,
     load_data,
     update_fig,
     make_image_layers,
@@ -24,9 +25,7 @@ D_SCHEME = "jet"
 D_OPACITY = 0.4
 D_LAYER = "All"
 
-page_info, defaults, layers, image_layers, cat_opts, value_info, axes, downloads = (
-    load_data("S1-12")
-)
+page_info, defaults, layers, cat_opts, value_info, axes, downloads = load_data("S1-12")
 
 
 def test_make_defaults():
@@ -89,9 +88,15 @@ def test_get_colorscale():
     assert get_colorscale("channel_split") == expected_scale
 
 
+def test_load_image_layers():
+    image_layers = load_image_layers("S1-12")
+    expected_image_layers = ["All", "Image 1", "Image 2", "Image 3", "Image 4"]
+    assert image_layers == expected_image_layers
+
+
 def test_load_data():
-    page_info, defaults, layers, image_layers, cat_opts, value_info, axes, downloads = (
-        load_data("S1-12")
+    page_info, defaults, layers, cat_opts, value_info, axes, downloads = load_data(
+        "S1-12"
     )
     expected_page_info = {
         "Block": "S1-12",
@@ -109,8 +114,6 @@ def test_load_data():
     assert defaults == expected_defaults
     expected_layers = ["All", "Layer 1", "Layer 2", "Layer 3", "Layer 4"]
     assert layers == expected_layers
-    expected_image_layers = ["All", "Image 1", "Image 2", "Image 3", "Image 4"]
-    assert image_layers == expected_image_layers
     expected_cat_opts = {
         "Category": "Gland",
         "Label (Only True)": "Pixels with gland tissue",

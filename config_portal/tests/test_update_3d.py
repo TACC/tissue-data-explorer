@@ -40,10 +40,10 @@ def test_save_generic_file():
     str1 = make_upload_content(FD["si-block"]["block-data"]["publish"])
     b1 = decode_str(str1)
 
-    assert Path("/app/depot/generic").exists() is False
-    validate.save_generic_file("/app/depot/generic", b1, "blocks.csv")
-    assert Path("/app/depot/generic/blocks.csv").exists() is True
-    shutil.rmtree(Path("/app/depot/generic"))
+    assert Path("/home/nonroot/app/depot/generic").exists() is False
+    validate.save_generic_file("/home/nonroot/app/depot/generic", b1, "blocks.csv")
+    assert Path("/home/nonroot/app/depot/generic/blocks.csv").exists() is True
+    shutil.rmtree(Path("/home/nonroot/app/depot/generic"))
 
 
 def test_update_df_entries():
@@ -54,10 +54,6 @@ def test_update_df_entries():
     new_entries_overlap = pd.DataFrame(
         data={"File": ["1_2_3.obj", "1 2 3.obj"], "Name": ["S1-6", "S1-7"]}
     )
-
-    # new_entries_invalid = pd.DataFrame(
-    #     data={"File": ["*.obj", "1 2 3.obj"], "Name": ["S1-6", "S1-7"]}
-    # )
 
     old_entries = pd.DataFrame(
         data={"File": ["1_2_3.obj", "a-b-c.obj"], "Name": ["S1-1", "S1-4"]}
@@ -83,10 +79,6 @@ def test_update_df_entries():
     )
     assert updated_df2.equals(expected_df2)
 
-    # # test failure condition
-    # failed_update = validate.update_df_entries(old_entries, new_entries_invalid, "File")
-    # assert failed_update[0] is False
-
 
 def test_update_entries():
     blank_loc_str = "./depot/blank/obj-files.csv"
@@ -94,13 +86,13 @@ def test_update_entries():
     if not Path.exists(blank_loc.parent):
         Path.mkdir(blank_loc.parent, parents=True)
 
-    full_loc_str = "/app/depot/full/obj-files.csv"
+    full_loc_str = "/home/nonroot/app/depot/full/obj-files.csv"
     full_loc = Path(full_loc_str)
     if not Path.exists(full_loc.parent):
         Path.mkdir(full_loc.parent, parents=True)
 
     # copy a test file into full loc
-    src = Path("/app/tests/test-files/obj/obj-files.csv")
+    src = Path("/home/nonroot/app/tests/test-files/obj/obj-files.csv")
     shutil.copyfile(src, full_loc)
 
     new_df = pd.DataFrame(
@@ -142,14 +134,14 @@ def test_update_entries():
 
 def test_process_obj_files():
     str1 = make_upload_content(
-        "/app/tests/test-files/obj/obj-files-bad-fn/obj-files.xlsx"
+        "/home/nonroot/app/tests/test-files/obj/obj-files-bad-fn/obj-files.xlsx"
     )
     b1 = decode_str(str1)
     str2 = make_upload_content(
-        "/app/tests/test-files/obj/obj-files-bad-headers/obj-files.xlsx"
+        "/home/nonroot/app/tests/test-files/obj/obj-files-bad-headers/obj-files.xlsx"
     )
     b2 = decode_str(str2)
-    str3 = make_upload_content("/app/examples/obj-files.xlsx")
+    str3 = make_upload_content("/home/nonroot/app/examples/obj-files.xlsx")
     b3 = decode_str(str3)
     str4 = make_upload_content(
         f"{FD["obj-files"]["volumes"]["publish"]}/S1_Sphere_Lower_S1-1.obj"
@@ -165,10 +157,10 @@ def test_process_obj_files():
 def test_update_obj_files_output():
     # will cause failure
     str1 = make_upload_content(
-        "/app/tests/test-files/obj/obj-files-bad-headers/obj-files.xlsx"
+        "/home/nonroot/app/tests/test-files/obj/obj-files-bad-headers/obj-files.xlsx"
     )
     # should succeed
-    str2 = make_upload_content("/app/examples/obj-files.xlsx")
+    str2 = make_upload_content("/home/nonroot/app/examples/obj-files.xlsx")
     str3 = make_upload_content(
         f"{FD["obj-files"]["volumes"]["publish"]}/S1_Sphere_Lower_S1-1.obj"
     )

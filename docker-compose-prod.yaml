@@ -11,7 +11,7 @@ services:
     tty: true
     restart: on-failure:5
     volumes:
-      - config-data:/app/assets/config
+      - config-data:/home/nonroot/app/assets/config
   config:
     image: "{username}/tissue-data-explorer-config:{tag}"
     env_file: ./config_portal/.env

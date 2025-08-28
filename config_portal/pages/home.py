@@ -226,6 +226,23 @@ def layout(**kwargs):
                 html.Section(
                     [
                         ui.make_upload_card(
+                            "Update scientific images",
+                            [],
+                            "sci-images",
+                            MAX_FILE_SIZE,
+                            90,
+                            example=False,
+                            accordion=True,
+                            acc_notes=sci_images_acc_notes,
+                            upload_multiple=True,
+                        ),
+                        dcc.Loading(html.Div(id="output-sci-images-upload")),
+                    ],
+                    id="sci-images",
+                ),
+                html.Section(
+                    [
+                        ui.make_upload_card(
                             "Update volumetric map data",
                             [
                                 "Volumetric map data file format:",
@@ -260,23 +277,6 @@ def layout(**kwargs):
                         dcc.Loading(html.Div(id="output-image-layers-upload")),
                     ],
                     id="image-layers",
-                ),
-                html.Section(
-                    [
-                        ui.make_upload_card(
-                            "Update scientific images",
-                            [],
-                            "sci-images",
-                            MAX_FILE_SIZE,
-                            90,
-                            example=False,
-                            accordion=True,
-                            acc_notes=sci_images_acc_notes,
-                            upload_multiple=True,
-                        ),
-                        dcc.Loading(html.Div(id="output-sci-images-upload")),
-                    ],
-                    id="sci-images",
                 ),
                 html.Section(
                     [

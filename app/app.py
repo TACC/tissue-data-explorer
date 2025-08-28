@@ -76,6 +76,33 @@ def toggle_navbar_collapse(n, is_open):
     return is_open
 
 
+@callback(Output("internal-links", "children"), Input("url", "pathname"))
+def display_links(pathname):
+    links = []
+    if pathname == "/":
+        links.append(dbc.NavItem(dbc.NavLink("Home", href="/", class_name="invisible")))
+    else:
+        links.append(
+            dbc.NavItem(
+                dbc.NavLink(
+                    "Home",
+                    href="/",
+                    class_name="text-light",
+                )
+            )
+        )
+    links.append(
+        dbc.NavItem(
+            dbc.NavLink(
+                "3D Model",
+                href="/3d",
+                class_name="text-light",
+            )
+        )
+    )
+    return links
+
+
 @callback(Output("breadcrumb", "children"), [Input("url", "pathname")])
 def render_breadcrumb(pathname):
     if pathname and "/scientific-images/" in pathname and len(pathname) > 28:

@@ -12,8 +12,8 @@ from helpers import make_upload_content
 
 
 def test_update_reports_output():
-    str1 = make_upload_content("/app/examples/reports.xlsx")
-    str2 = make_upload_content("/app/examples/images-example.xlsx")
+    str1 = make_upload_content("/home/nonroot/app/examples/reports.xlsx")
+    str2 = make_upload_content("/home/nonroot/app/examples/images-example.xlsx")
 
     # expect success
     result1 = json.loads(

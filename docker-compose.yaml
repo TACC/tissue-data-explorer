@@ -1,11 +1,16 @@
 # This compose file prepares a production image of the software, which can then
 # be published to Docker Hub and run on production using docker-compose-prod.yaml.
 
+name: tde-prod
 services:
   display:
     build:
       context: .
-      dockerfile: "./app/Dockerfile"
+      dockerfile: "./Dockerfile-all"
+      target: ${DTARGET:-prod-display}
+      args:
+        USERID: ${USERID}
+        GROUPID: ${GROUPID}
       platforms: 
         - "linux/amd64"
         - "linux/arm64"
@@ -15,14 +20,18 @@ services:
     tty: true
     restart: on-failure:5
     volumes:
-      - config-data:/app/assets/config
+      - config-data:/home/nonroot/app/assets/config
   config:
     build:
       context: .
-      dockerfile: "./config_portal/Dockerfile-config"
+      dockerfile: "./Dockerfile-all"
+      target: ${CTARGET:-prod-config}
+      args:
+        USERID: ${USERID}
+        GROUPID: ${GROUPID}
       platforms: 
-        - "linux/amd64"
         - "linux/arm64"
+        - ${PLATFORM:-}
     ports:
       - "8040:8040"
     stdin_open: true
@@ -33,3 +42,4 @@ services:
 volumes:
   config-data:
     external: true
+    name: ${VOLUME:-config-data}

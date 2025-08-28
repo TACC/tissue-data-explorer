@@ -7,3 +7,4 @@ __pycache__*
 **/config_portal/depot/**
 **/config_portal/config/**
 **/cache/**
+**/*.log

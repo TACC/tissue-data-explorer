@@ -503,23 +503,27 @@ def publish_si_block() -> tuple[str, str, str]:
     Returns (title of update toast, description of update, success status)"""
     try:
         new_si_df = pd.read_csv(FD["si-block"]["si-files"]["depot"])
+    except FileNotFoundError:
+        app_logger.debug(traceback.print_exc())
+        return ("Metadata not updated", "File not found", "failure")
+    try:
         old_tn_df = pd.read_csv(FD["thumbnails"]["catalog"])
 
         # find out which entries in the new blocks file will need to be updated in the thumbnails catalog
         changed_entries = query_thumbnails_for_changed_filenames(new_si_df, old_tn_df)
         files = list(changed_entries)
-
         generate_thumbnails(files, new_si_df, False)
-
-        # put new scientific images metadata in publish location
-        for key in FD["si-block"].keys():
-            p = Path(FD["si-block"][key]["depot"])
-            t = Path(FD["si-block"][key]["publish"])
-            if p.exists():
-                shutil.move(p, t)
-
     except FileNotFoundError:
-        return ("Metadata not updated", "File not found", "failure")
+        # if thumbnails don't exist, that's ok. Images can get loaded after metadata
+        pass
+
+    # put new scientific images metadata in publish location
+    for key in FD["si-block"].keys():
+        p = Path(FD["si-block"][key]["depot"])
+        t = Path(FD["si-block"][key]["publish"])
+        if p.exists():
+            shutil.move(p, t)
+
     return (
         "Metadata updated",
         "The configuration has been updated. Refresh the public-facing app to see the changes.",
@@ -973,11 +977,20 @@ def check_volumetric_map_data_xlsx(file: bytes) -> tuple[bool, str]:
                 item.sort_values(by=["X Center", "Y Center", "Z Center"], inplace=True)
             item.to_csv(f"{loc}/{key}.csv", index=False)
         # create cubes csv
-        cubes_df = make_cubes_df(
-            header_check[2]["points_data"], header_check[2]["vol_measurements"]
-        )
-        cubes_df.to_csv(f"{loc}/cube_data.csv", index=False)
-        return True, ""
+        if (
+            header_check[2]["points_data"].size > 0
+            and header_check[2]["vol_measurements"].size > 0
+        ):
+            cubes_df = make_cubes_df(
+                header_check[2]["points_data"], header_check[2]["vol_measurements"]
+            )
+            cubes_df.to_csv(f"{loc}/cube_data.csv", index=False)
+            return True, ""
+        else:
+            return (
+                False,
+                "volumetric-map-data.xlsx must include points data and volume measurements.",
+            )
     else:
         return False, header_check[1]
 
