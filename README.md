@@ -84,7 +84,7 @@ The script `run_tests.sh` in the root project folder creates docker containers f
       cp -r volume-data/* config
       ```
 
-6. Run the image.
+6. Run the image. The production containers should restart automatically if the server reboots due to the Docker restart policy.
 
    ```
    USERID=${UID} GROUPID=${GID} docker compose -f docker-compose-prod.yaml up
