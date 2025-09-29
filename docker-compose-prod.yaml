@@ -9,7 +9,7 @@ services:
       - "8050:8050"
     stdin_open: true
     tty: true
-    restart: on-failure:5
+    restart: always
     volumes:
       - config-data:/home/nonroot/app/assets/config
   config:
@@ -19,7 +19,7 @@ services:
       - "8040:8040"
     stdin_open: true
     tty: true
-    restart: on-failure:5
+    restart: always
     volumes:
       - config-data:/config
 volumes:
