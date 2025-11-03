@@ -11,6 +11,7 @@ RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 FROM python:3.13-bookworm AS dev-display
 ARG USERID
 ARG GROUPID
+RUN groupadd -g $GROUPID tde
 RUN adduser --uid $USERID --gid $GROUPID --disabled-password --gecos "" nonroot
 RUN echo 'nonroot ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 USER nonroot
@@ -30,6 +31,7 @@ FROM python:3.13-bookworm AS prod-display
 RUN apt-get update && apt-get upgrade -y && apt-get install -y python3
 ARG USERID
 ARG GROUPID
+RUN groupadd -g $GROUPID tde
 RUN adduser --uid $USERID --gid $GROUPID --disabled-password --gecos "" nonroot
 RUN echo 'nonroot ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 USER nonroot
@@ -60,6 +62,7 @@ RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 FROM python:3.13-bookworm AS dev-config
 ARG USERID
 ARG GROUPID
+RUN groupadd -g $GROUPID tde
 RUN adduser --uid $USERID --gid $GROUPID --disabled-password --gecos "" nonroot
 RUN echo 'nonroot ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 WORKDIR /home/nonroot/app
@@ -80,6 +83,7 @@ FROM python:3.13-bookworm AS prod-config
 RUN apt-get update && apt-get install python3 ffmpeg libsm6 libxext6  -y
 ARG USERID
 ARG GROUPID
+RUN groupadd -g $GROUPID tde
 RUN adduser --uid $USERID --gid $GROUPID --disabled-password --gecos "" nonroot
 RUN echo 'nonroot ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 USER nonroot
