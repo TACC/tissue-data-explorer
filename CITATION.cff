@@ -1,0 +1,17 @@
+message: "If you use this software, please cite it using these metadata."
+cff-version: 1.2.0
+authors:
+  - name: "James A. Labyer"
+    orcid: https://orcid.org/0009-0003-8222-2079
+  - name: "Erik Ferlanti"
+    orcid: https://orcid.org/0000-0001-5128-1584
+  - name: "Martha Campbell-Thompson"
+    orcid: https://orcid.org/0000-0001-6878-1235
+  - name: "Clayton E. Mathews"
+    orcid: https://orcid.org/0000-0002-8817-6355
+  - name: "Wei-Jun Qian"
+    orcid: https://orcid.org/0000-0002-5393-2827
+  - name: "James P. Carson"
+    orcid: https://orcid.org/0000-0001-9009-5645
+title: "Tissue Data Explorer"
+version: 1.0.0
