@@ -26,7 +26,7 @@ authors:
     orcid: 0000-0002-8817-6355
     affiliation: 2
   - name: Wei-Jun Qian
-    orcid: 0000-0002-8817-6355
+    orcid: 0000-0002-5393-2827
     affiliation: 3
   - name: James P. Carson
     orcid: 0000-0001-9009-5645
