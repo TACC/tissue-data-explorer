@@ -91,6 +91,6 @@ If the researchers are satisfied with the existing interfaces, they can deploy a
 
 # Acknowledgements
 
-We thank the Texas Advanced Computing Center (TACC) staff and the National Science Foundation (NSF) Leadership Class Computing Facility (LCCF) Internship Program for supporting James Labyer and this work. We also thank the National Institutes of Health Common Fund's HuBMAP program and National Institute of Diabetes and Digestive and Kidney Diseases (NIDDK) project 5U54DK127823 and its team members for the feedback and datasets that shaped the development of this software.
+We thank the Texas Advanced Computing Center (TACC) staff and the National Science Foundation (NSF) Leadership Class Computing Facility (LCCF) Internship Program for supporting James Labyer and this work. We also thank the National Institutes of Health Common Fund's HuBMAP program and National Institute of Diabetes and Digestive and Kidney Diseases (NIDDK) project U54DK127823 and its team members for the feedback and datasets that shaped the development of this software.
 
 # References
