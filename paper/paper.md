@@ -71,7 +71,7 @@ The display app can display 3D models of a tissue sample or organ. Multiple 3D m
 ## Image Stack Viewer
 The display app also handles image stacks. Image stacks are loaded into the app as a series of .PNG files along with the source files. The .PNGs are used for the website display and the source files are made available for download. All image sets that are available for a tissue block are listed together, and users can click an image set to view and download the images. The .PNG images are displayed with a slider that allows users to scroll through the images.
 
-![Image sets associated with a tissue block.\label{fig:sci-img}](imgs-list-short.png)
+![Image sets associated with a tissue block.\label{fig:imgs-list-short}](imgs-list-short.png)
 
 ![Interface for exploring a multichannel stack of images, shown here with a synthetic image stack.\label{fig:sci-img}](sci-img.png)
 
