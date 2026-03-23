@@ -32,11 +32,11 @@ authors:
     orcid: 0000-0001-9009-5645
     affiliation: 1
 affiliations:
-  - name: Texas Advanced Computing Center, The University of Texas at Austin, Austin, TX
+  - name: Texas Advanced Computing Center, The University of Texas at Austin, Austin, TX, United States of America
     index: 1
-  - name: Department of Pathology, Immunology and Laboratory Medicine, University of Florida, Gainesville, FL
+  - name: Department of Pathology, Immunology and Laboratory Medicine, University of Florida, Gainesville, FL, United States of America
     index: 2
-  - name: Biological Sciences Division, Pacific Northwest National Laboratory, Richland, WA
+  - name: Biological Sciences Division, Pacific Northwest National Laboratory, Richland, WA, United States of America
     index: 3
 date: 21 February 2025
 bibliography: paper.bib
